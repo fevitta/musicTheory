@@ -1,7 +1,7 @@
 {
-  "name": "Campo Harmônico no Piano",
-  "short_name": "Campo Harmônico",
-  "start_url": "/",
+  "name": "Teoria Musical no Piano",
+  "short_name": "Teoria no Piano",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#F3F4F7",
   "theme_color": "#2946C9",
