@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Cole os acordes de uma música, descubra a tonalidade, veja a função de cada acorde e transponha para outro tom.">
+<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10121A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teoria no Piano">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<script src="music.js"></script>
+<title>Descobrir o Tom e Transpor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+.section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+section{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* Entrada */
+textarea{width:100%;min-height:150px;resize:vertical;font-family:var(--mono);font-size:14px;line-height:1.5;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+.ex{font-family:var(--mono);font-size:12.5px;min-width:0}
+
+/* Resultado */
+.result{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:14px}
+.key-name{font-family:var(--display);font-weight:700;font-size:clamp(38px,7vw,56px);line-height:1}
+.key-sol{font-family:var(--display);font-size:20px;color:var(--muted)}
+.meter{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter span{display:block;height:100%;background:var(--t);border-radius:inherit}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
+dt{color:var(--muted)}
+dd{margin:0;font-family:var(--mono);font-size:13.5px}
+.alts{display:flex;flex-direction:column;gap:6px}
+.alt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);background:transparent;border-radius:10px;padding:9px 12px;text-align:left}
+.alt:hover{border-color:var(--accent)}
+.alt[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.alt b{font-family:var(--display);font-size:19px}
+.alt small{font-family:var(--mono);font-size:12px;color:var(--muted)}
+a.link{color:var(--accent);font-weight:600;font-size:14px;text-decoration:none}
+a.link:hover{text-decoration:underline}
+
+/* Análise */
+.kbd-scroll{overflow-x:auto;max-width:100%}
+#kbd{display:block;width:100%;max-height:220px;min-width:420px;height:auto}
+.chords{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ch{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 10px 10px;text-align:left;display:flex;flex-direction:column;gap:5px;position:relative;transition:border-color .15s}
+.ch:hover{border-color:var(--accent)}
+.ch[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
+.ch .r{font-family:var(--display);font-size:17px;font-weight:700;color:var(--muted)}
+.ch.T .r{color:var(--t)} .ch.SD .r{color:var(--sd)} .ch.D .r{color:var(--d)}
+.ch .c{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.05;word-break:break-word}
+.ch .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.ch .f{font-size:12px;font-weight:600;color:var(--muted)}
+.ch.T .f{color:var(--t)} .ch.SD .f{color:var(--sd)} .ch.D .f{color:var(--d)}
+.ch.out{border-style:dashed}
+.ch .x{position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* Transpor */
+#keys{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;max-width:420px}
+#keys .chip{min-width:0;padding:6px 3px;font-size:13px;position:relative}
+#keys .chip.orig::after{content:"";position:absolute;left:50%;bottom:3px;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:currentColor}
+pre{margin:0;font-family:var(--mono);font-size:14px;line-height:1.5;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;overflow-x:auto;white-space:pre}
+.empty{color:var(--muted);font-size:14px;margin:0}
+
+@media (max-width:760px){ .result{grid-template-columns:1fr} }
+@media (max-width:480px){ .chords{grid-template-columns:repeat(2,minmax(0,1fr))} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top-bar">
+      <a class="eyebrow" href="index.html">← Teoria musical no piano</a>
+      <div class="seg theme" id="theme" role="group" aria-label="Tema"></div>
+    </div>
+    <h1>Descobrir o Tom e Transpor</h1>
+    <p class="lede">Cole os acordes de uma música, ou a cifra inteira com a letra. A página descobre a tonalidade, mostra a função de cada acorde e transpõe tudo para o tom que você quiser.</p>
+  </header>
+
+  <section>
+    <div class="card">
+      <label class="lbl" for="src">Acordes ou cifra</label>
+      <textarea id="src" spellcheck="false" autocomplete="off" placeholder="Ex.: G D Em C&#10;&#10;Ou cole a cifra com a letra: só as linhas de acordes são lidas."></textarea>
+      <div class="row"><span class="hint">Exemplos:</span><span class="row" id="examples"></span></div>
+      <span class="hint" id="readInfo">Aceita C, Am, G7, F7M, Bm7(b5), C°, Dsus4, D/F#…</span>
+    </div>
+  </section>
+
+  <p class="empty" id="emptyMsg">Nenhum acorde ainda. Digite ou cole acordes acima, ou toque em um exemplo.</p>
+
+  <div id="out" hidden style="display:flex;flex-direction:column;gap:28px">
+    <section>
+      <div class="section-head"><h2>Tonalidade provável</h2><span class="hint">Toque em outra opção para analisar nela.</span></div>
+      <div class="result">
+        <div class="card">
+          <div><div class="key-name" id="keyName"></div><div class="key-sol" id="keySol"></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div class="meter"><span id="meter"></span></div>
+            <span class="hint" id="fitInfo"></span>
+          </div>
+          <dl>
+            <dt>Armadura</dt><dd id="sig"></dd>
+            <dt>Relativa</dt><dd id="rel"></dd>
+          </dl>
+          <a class="link" id="toField" href="campo-harmonico.html">Ver o campo harmônico deste tom →</a>
+        </div>
+        <div class="card">
+          <span class="lbl">Outras possibilidades</span>
+          <div class="alts" id="alts"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2 id="anTitle">Acordes da música</h2><span class="hint">Toque em um acorde para ver e ouvir.</span></div>
+      <div class="card">
+        <div class="kbd-scroll"><svg id="kbd" viewBox="0 0 562 190" role="img" aria-label="Teclado com as notas do acorde escolhido"></svg></div>
+        <div class="row"><button class="btn" id="playSeq" type="button">Tocar a sequência</button><span class="hint" id="kbdHint"></span></div>
+      </div>
+      <div class="chords" id="chords"></div>
+      <div class="row" id="legend">
+        <span class="tag T">T · Tônica</span><span class="tag SD">SD · Subdominante</span><span class="tag D">D · Dominante</span>
+        <span class="hint">Borda tracejada: acorde de fora do campo.</span>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>Transpor</h2><span class="hint" id="easy"></span></div>
+      <div class="card">
+        <span class="lbl">Para o tom</span>
+        <div id="keys"></div>
+        <div class="row">
+          <button class="btn" id="down" type="button">− ½ tom</button>
+          <button class="btn" id="up" type="button">+ ½ tom</button>
+          <button class="btn" id="reset" type="button">Tom original</button>
+          <span class="hint" id="shiftInfo"></span>
+        </div>
+        <pre id="result"></pre>
+        <div class="row"><button class="btn primary" id="copy" type="button">Copiar</button><span class="hint" id="copied" aria-live="polite"></span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  const {LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys}=Music;
+  const TONICS={maior:['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'],menor:['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B']};
+  // Campo harmônico: [grau, semitons da tônica, tríade, tétrade, função, observação]
+  const FIELD={
+    maior:[[0,0,'M','7M','T'],[1,2,'m','m7','SD'],[2,4,'m','m7','T'],[3,5,'M','7M','SD'],[4,7,'M','7','D'],[5,9,'m','m7','T'],[6,11,'dim','m7b5','D']],
+    menor:[[0,0,'m','m7','T'],[1,2,'dim','m7b5','SD'],[2,3,'M','7M','T'],[3,5,'m','m7','SD'],[4,7,'m','m7','D'],[5,8,'M','7M','SD'],[6,10,'M','7','D'],
+      [4,7,'M','7','D','menor harmônica'],[6,11,'dim','dim7','D','menor harmônica']]
+  };
+  const FN={T:'Tônica',SD:'Subdominante',D:'Dominante'};
+  // Letra (contando da tônica) para cada distância em semitons: I ♭II II ♭III III IV ♯IV V ♭VI VI ♭VII VII
+  const STEP=[0,1,1,2,2,3,3,4,5,5,6,6];
+  const ROMAN={0:'I',1:'♭II',2:'II',3:'♭III',4:'III',5:'IV',6:'♯IV',7:'V',8:'♭VI',9:'VI',10:'♭VII',11:'VII'};
+  const TRI_IV={M:[0,4,7],m:[0,3,7],dim:[0,3,6],aug:[0,4,8],sus4:[0,5,7],sus2:[0,2,7]};
+  const TRI_SYM={M:'',m:'m',dim:'°',aug:'(♯5)',sus4:'sus4',sus2:'sus2'};
+  const Q7_SYM={'7M':'7M','7':'7',m7:'m7',m7M:'m(7M)',m7b5:'m7(♭5)',dim7:'°7'};
+
+  // ---------- Leitura das cifras ----------
+  function parseChord(tok){
+    const t=tok.replace(/♯/g,'#').replace(/♭/g,'b');
+    const m=t.match(/^([A-G])([#b]?)([^/]*)(?:\/([A-G])([#b]?))?$/); if(!m) return null;
+    const s=m[3];
+    if(s.replace(/Maj|maj|min|dim|aug|sus|add|omit|no|[0-9]|[()#b+°ºø,.\-mM]/g,'')!=='') return null;
+    const pcOf=(l,a)=>(NAT[LET.indexOf(l)]+(a==='#'?1:a==='b'?-1:0)+12)%12;
+    let tri='M', half=false, sev=null;
+    if(/^(m(?!aj)|min|-)/.test(s)) tri='m';
+    if(/dim|°|º/.test(s)) tri='dim';
+    if(/ø|m7\(?b5/.test(s)){tri='dim';half=true;}
+    if(tri==='M'&&/aug|\+|#5/.test(s)&&!/7\+/.test(s)) tri='aug';
+    if(/sus2/.test(s)) tri='sus2'; else if(/sus|(^|[^1])4/.test(s)) tri='sus4';
+    if(/7M|maj7|Maj7|M7|7\+/.test(s)) sev='7M'; else if(/7|ø/.test(s)) sev='7'; else if(/(^|[^1])6/.test(s)&&!/b6|#6/.test(s)) sev='6';
+    let q7=null;
+    if(sev==='7M') q7=tri==='M'?'7M':tri==='m'?'m7M':'x';
+    if(sev==='7') q7=tri==='M'||tri.startsWith('sus')?'7':tri==='m'?'m7':tri==='dim'?(half?'m7b5':'dim7'):'x';
+    const ch={tok,root:pcOf(m[1],m[2]),rootLi:LET.indexOf(m[1]),rootName:m[1]+m[2],suf:s,tri,sev,half,q7};
+    if(m[4]){ch.bass=pcOf(m[4],m[5]);ch.bassName=m[4]+m[5];}
+    return ch;
+  }
+  const IGNORE=/^(\||\|\||\/|-|–|—|:|%|\.+|x\d+|\(?\d+x\)?|\[.*\]|.*:)$/i;
+  // Lê o texto: devolve as linhas (com os acordes e suas posições) e a lista de acordes na ordem
+  function read(text){
+    const lines=text.split(/\r?\n/).map(line=>{
+      const toks=[...line.matchAll(/\S+/g)].map(mt=>{const raw=mt[0]; if(IGNORE.test(raw)) return {raw,at:mt.index,skip:true};
+        let ch=parseChord(raw), pre='', post='';
+        if(!ch){const mm=raw.match(/^([(\[|]*)(.*?)([)\]|,.]*)$/); if(mm&&mm[2]){ch=parseChord(mm[2]);pre=mm[1];post=mm[3];}}
+        return {raw,at:mt.index,ch,pre,post};});
+      const real=toks.filter(t=>!t.skip);
+      const isChords=real.length>0&&real.every(t=>t.ch);
+      return {line,toks,isChords};});
+    const chords=lines.filter(l=>l.isChords).flatMap(l=>l.toks.filter(t=>t.ch).map(t=>t.ch));
+    return {lines,chords,chordLines:lines.filter(l=>l.isChords).length};
+  }
+
+  // ---------- Análise ----------
+  function analyze(c,tp,mode){
+    const iv=(c.root-tp+12)%12, F=FIELD[mode];
+    if(c.tri.startsWith('sus')){const f=F.find(f=>f[1]===iv); if(f) return {kind:'dia',deg:f[0],fn:f[4],iv,note:'suspenso'};}
+    const hit=F.find(f=>f[1]===iv&&f[2]===c.tri&&(!c.q7||f[3]===c.q7));
+    if(hit) return {kind:'dia',deg:hit[0],fn:hit[4],iv,note:hit[5]};
+    // Dominante secundária: acorde maior (ou com 7) uma quinta acima de um grau do campo
+    if(c.tri==='M'&&(!c.q7||c.q7==='7')){const t=(iv+5)%12, f=F.find(f=>f[1]===t&&f[2]!=='dim'&&!f[5]);
+      if(f) return {kind:'sec',fn:'D',iv,target:f,tIv:t};}
+    if(c.tri==='dim'&&c.q7==='dim7') return {kind:'dim',fn:'D',iv};
+    // Empréstimo modal: acorde do tom homônimo (maior ↔ menor)
+    const other=mode==='maior'?'menor':'maior';
+    const b=FIELD[other].slice(0,7).find(f=>f[1]===iv&&f[2]===c.tri&&(!c.q7||f[3]===c.q7||c.q7==='7'&&f[3]==='7'));
+    if(b) return {kind:'emp',fn:b[4],iv,deg:b[0]};
+    return {kind:'fora',fn:null,iv};
+  }
+  function candidates(chords){
+    const res=[], n=chords.length;
+    ['maior','menor'].forEach(mode=>TONICS[mode].forEach(t=>{
+      const tp=parse(t).pc; let score=0, fit=0;
+      chords.forEach((c,i)=>{const a=analyze(c,tp,mode), w=1+(i===0?0.5:0)+(i===n-1?0.5:0);
+        // Fora do campo pesa contra; dominante secundária e empréstimo pesam menos
+        if(a.kind==='dia'){score+=w;fit++;} else score-=w*(a.kind==='fora'?1:0.5);});
+      const isTonic=c=>c.root===tp&&c.tri===(mode==='maior'?'M':'m')&&(!c.q7||c.q7===(mode==='maior'?'7M':'m7')||c.q7==='m7M');
+      if(isTonic(chords[0])) score+=1;
+      if(isTonic(chords[n-1])) score+=1.2;
+      if(chords.some(isTonic)) score+=1;
+      if(chords.some(c=>c.root===(tp+7)%12&&c.tri==='M'&&c.q7==='7')) score+=0.8;
+      // Cadência: V (ou V7) resolvendo na tônica é o sinal mais forte do tom
+      for(let i=1;i<n;i++){const a=chords[i-1]; if(a.root===(tp+7)%12&&a.tri==='M'&&isTonic(chords[i])) score+=a.q7==='7'?2:1.2;}
+      res.push({tonic:t,pc:tp,mode,score,fit});
+    }));
+    return res.sort((a,b)=>b.score-a.score||b.fit-a.fit);
+  }
+
+  // ---------- Grafia ----------
+  // Grafa a classe de altura pc pela distância até a tônica (ex.: em Fá, 10 semitons → Mi♭)
+  const FLATS=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'], SHARPS=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  function spellInKey(key,pc){const {li,pc:tp}=parse(key.tonic);const n=spellAt(li+STEP[(pc-tp+12)%12],pc);
+    if(Math.abs(n.acc)<=1) return n;
+    const nm=(/b/.test(key.tonic)||key.tonic==='F'?FLATS:SHARPS)[pc]; return spellAt(LET.indexOf(nm[0]),pc);}
+  // Baixo e notas do acorde grafados pelo intervalo a partir da fundamental
+  function spellFromRoot(rootLi,rootPc,pc,tri){const i=(pc-rootPc+12)%12;
+    const off={0:0,1:1,2:1,3:2,4:2,5:3,6:tri==='dim'?4:3,7:4,8:tri==='aug'?4:5,9:tri==='dim'?6:5,10:6,11:6}[i];
+    return spellAt(rootLi+off,pc);}
+  const ascii=n=>n.letter+(n.acc>0?'#'.repeat(n.acc):'b'.repeat(-n.acc));
+  function keyName(k){return niceT(k.tonic)+' '+k.mode;}
+  function keySolName(k){const {li,pc}=parse(k.tonic);return spellAt(li,pc).sol+' '+k.mode;}
+  function keySig(k){const {li,pc}=parse(k.tonic);const iv=k.mode==='maior'?[0,2,4,5,7,9,11]:[0,2,3,5,7,8,10];
+    const ns=iv.map((x,i)=>spellAt(li+i,(pc+x)%12)).filter(n=>n.acc);
+    if(!ns.length) return 'sem acidentes';
+    const sharp=ns[0].acc>0, order=sharp?'FCGDAEB':'BEADGCF';
+    ns.sort((a,b)=>order.indexOf(a.letter)-order.indexOf(b.letter));
+    const c=ns.length; return `${c} ${sharp?(c>1?'sustenidos':'sustenido'):(c>1?'bemóis':'bemol')}: ${ns.map(n=>n.name).join(' ')}`;}
+  function relative(k){const {li,pc}=parse(k.tonic);
+    return k.mode==='maior'?{tonic:ascii(spellAt(li+5,(pc+9)%12)),mode:'menor'}:{tonic:ascii(spellAt(li+2,(pc+3)%12)),mode:'maior'};}
+
+  // ---------- Estado ----------
+  const st={text:'',pick:null,shift:0,sel:null};
+  try{st.text=localStorage.getItem('tom-texto')||'';}catch(e){}
+  const $=id=>document.getElementById(id);
+  let data=null, key=null, cands=[];
+
+  const targetKey=()=>({tonic:TONICS[key.mode][(key.pc+st.shift)%12],pc:(key.pc+st.shift)%12,mode:key.mode});
+  // Nome do acorde no tom de destino (no tom original, mantém como foi escrito)
+  function chordNames(c){
+    if(!st.shift) return {root:c.rootName,bass:c.bassName,rootLi:c.rootLi};
+    const tk=targetKey(), r=spellInKey(tk,(c.root+st.shift)%12);
+    const b=c.bass!=null?spellFromRoot(LET.indexOf(r.letter),r.pc,(c.bass+st.shift)%12,c.tri):null;
+    return {root:ascii(r),bass:b&&ascii(b),rootLi:LET.indexOf(r.letter)};}
+  const chordText=c=>{const n=chordNames(c);return n.root+c.suf+(n.bass?'/'+n.bass:'');};
+  const nice=s=>s.replace(/#/g,'♯').replace(/^([A-G])b/,'$1♭').replace(/\/([A-G])b/,'/$1♭').replace(/b(?=\d)/g,'♭');
+  function voicing(c){const n=chordNames(c), rp=(c.root+st.shift)%12;
+    const ivs=TRI_IV[c.tri].slice(); if(c.sev==='7M') ivs.push(11); else if(c.sev==='7') ivs.push(c.tri==='dim'&&!c.half?9:10); else if(c.sev==='6') ivs.push(9);
+    const base=48+rp, notes=ivs.map((x,i)=>({m:base+x,label:spellFromRoot(n.rootLi,rp,(rp+x)%12,c.tri).name,root:i===0}));
+    if(c.bass!=null){const bp=(c.bass+st.shift)%12; notes.unshift({m:36+bp,label:spellFromRoot(n.rootLi,rp,bp,c.tri).name,bass:true});}
+    return notes;}
+
+  function romanOf(c,a){ if(a.kind==='sec'){const t=a.target; return 'V'+(c.q7==='7'?'7':'')+'/'+ROMAN[a.tIv]+TRI_SYM[t[2]];}
+    return ROMAN[a.iv]+(c.q7?Q7_SYM[c.q7]||'':TRI_SYM[c.tri]);}
+  function explain(c,a){
+    if(a.kind==='dia') return a.note==='suspenso'?`${FN[a.fn]} (suspenso)`:a.note?`${FN[a.fn]} (${a.note})`:FN[a.fn];
+    if(a.kind==='sec'){const tk=targetKey(), r=spellInKey(tk,(key.pc+a.tIv+st.shift)%12);return `Dominante secundária: prepara ${r.name}${TRI_SYM[a.target[2]]}`;}
+    if(a.kind==='dim') return 'Diminuto de passagem';
+    if(a.kind==='emp') return `${FN[a.fn]}, emprestado do tom ${key.mode==='maior'?'menor':'maior'}`;
+    return 'Fora do campo';}
+
+  // ---------- Desenho ----------
+  const EXAMPLES=[['G D Em C','G D Em C'],['Am F C G','Am F C G'],['Dm7 G7 C7M A7','Dm7 G7 C7M A7'],['Cifra com letra','C          G\nHoje eu vou tocar\nAm            F\nno meu piano de manhã\nC        A7        Dm\ntodo acorde tem lugar\nF       G7       C\nquando a música é irmã']];
+  EXAMPLES.forEach(([label,text])=>{const b=document.createElement('button');b.type='button';b.className='chip ex';b.textContent=label;
+    b.onclick=()=>{$('src').value=text;st.text=text;st.pick=null;st.shift=0;st.sel=null;update();};$('examples').appendChild(b);});
+
+  function update(){
+    try{localStorage.setItem('tom-texto',st.text);}catch(e){}
+    data=read(st.text);
+    const has=data.chords.length>0;
+    $('out').hidden=!has; $('emptyMsg').hidden=has;
+    $('readInfo').textContent=has?`${data.chords.length} ${data.chords.length>1?'acordes lidos':'acorde lido'} em ${data.chordLines} ${data.chordLines>1?'linhas':'linha'}. Linhas com letra são mantidas como estão.`:'Aceita C, Am, G7, F7M, Bm7(b5), C°, Dsus4, D/F#…';
+    if(!has) return;
+    cands=candidates(data.chords);
+    key=(st.pick&&cands.find(k=>k.tonic===st.pick.tonic&&k.mode===st.pick.mode))||cands[0];
+    render();
+  }
+  function render(){
+    const tk=targetKey(), n=data.chords.length;
+    // Tonalidade
+    $('keyName').textContent=keyName(key); $('keySol').textContent=keySolName(key);
+    $('meter').style.width=Math.round(key.fit/n*100)+'%';
+    $('fitInfo').textContent=`${key.fit} de ${n} acordes pertencem ao campo harmônico${key.fit<n?' (os outros são explicados abaixo)':''}.`;
+    $('sig').textContent=keySig(key);
+    const rel=relative(key); $('rel').textContent=keyName(rel);
+    $('toField').href=`campo-harmonico.html?tonic=${encodeURIComponent(tk.tonic)}&mode=${tk.mode}`;
+    $('toField').textContent=`Ver o campo harmônico de ${keyName(tk)} →`;
+    const alts=$('alts'); alts.innerHTML='';
+    const shown=[cands[0]].concat(cands.slice(1).filter(k=>k.fit>0).slice(0,3)); if(!shown.includes(key)) shown.push(key);
+    shown.forEach((k,i)=>{const b=document.createElement('button');b.type='button';b.className='alt';b.setAttribute('aria-pressed',String(k===key));
+      b.innerHTML=`<b>${keyName(k)}</b><small>${k.fit}/${n} no campo${i===0?' · mais provável':''}</small>`;
+      b.onclick=()=>{st.pick={tonic:k.tonic,mode:k.mode};st.sel=null;key=k;render();};alts.appendChild(b);});
+    // Acordes (únicos, na ordem em que aparecem)
+    $('anTitle').textContent=st.shift?`Acordes em ${keyName(tk)}`:'Acordes da música';
+    const uniq=[]; const count=new Map();
+    data.chords.forEach(c=>{const k=c.tok.replace(/[()\[\]|,.]+$/,'');if(!count.has(k)){count.set(k,0);uniq.push(c);}count.set(k,count.get(k)+1);});
+    const box=$('chords'); box.innerHTML='';
+    uniq.forEach((c,i)=>{const a=analyze(c,key.pc,key.mode), b=document.createElement('button');
+      b.type='button'; b.className='ch '+(a.fn||'')+(a.kind==='dia'?'':' out'); b.setAttribute('aria-pressed',String(st.sel===i));
+      const notes=voicing(c).filter(v=>!v.bass);
+      const cnt=count.get(c.tok.replace(/[()\[\]|,.]+$/,''));
+      b.innerHTML=`<span class="r">${romanOf(c,a)}</span><span class="c">${nice(chordText(c))}</span><span class="n">${notes.map(v=>v.label).join(' ')}</span><span class="f">${explain(c,a)}</span>${cnt>1?`<span class="x">×${cnt}</span>`:''}`;
+      b.onclick=()=>{st.sel=i;show(c,true);box.querySelectorAll('.ch').forEach((x,k)=>x.setAttribute('aria-pressed',String(k===i)));};
+      box.appendChild(b);});
+    const cur=uniq[st.sel]||uniq[0]; show(cur,false);
+    // Transpor
+    const keys=$('keys'); keys.innerHTML='';
+    TONICS[key.mode].forEach((t,pc)=>{const b=document.createElement('button');b.type='button';b.className='chip'+(pc===key.pc?' orig':'');
+      b.textContent=niceT(t)+(key.mode==='menor'?'m':''); b.title=(pc===key.pc?'Tom original: ':'')+niceT(t)+' '+key.mode;
+      b.setAttribute('aria-pressed',String(pc===tk.pc)); b.onclick=()=>{st.shift=(pc-key.pc+12)%12;render();}; keys.appendChild(b);});
+    const s=((st.shift+5)%12)-5;
+    $('shiftInfo').textContent=st.shift?`${keyName(key)} → ${keyName(tk)} (${s>0?'+':''}${s} semitom${Math.abs(s)>1?'s':''})`:'No tom original';
+    $('result').textContent=transposed();
+    $('copied').textContent='';
+    // Tons mais fáceis: menos teclas pretas nas notas dos acordes
+    const cost=[...Array(12)].map((_,sh)=>data.chords.reduce((t,c)=>t+TRI_IV[c.tri].filter(x=>BLACK.has((c.root+sh+x)%12)).length,0));
+    const best=[...Array(12).keys()].sort((a,b)=>cost[a]-cost[b]).slice(0,3).map(sh=>niceT(TONICS[key.mode][(key.pc+sh)%12])+(key.mode==='menor'?'m':''));
+    $('easy').textContent=`Menos teclas pretas: ${best.join(', ')}`;
+  }
+  function show(c,sound){const v=voicing(c);drawKeys($('kbd'),v,{low:c.bass!=null?36:48});
+    $('kbdHint').textContent=`${nice(chordText(c))}: ${v.map(x=>x.label).join(' ')}${c.bass!=null?' (baixo na mão esquerda)':''}`;
+    if(sound) playNotes(v.map(x=>x.m));}
+  // Texto transposto, mantendo a posição dos acordes sobre a letra
+  function transposed(){
+    return data.lines.map(l=>{ if(!l.isChords||!st.shift) return l.line;
+      let out=''; l.toks.forEach(t=>{const txt=t.skip?t.raw:t.pre+chordText(t.ch)+t.post; let at=t.at; if(out.length&&at<=out.length) at=out.length+1; out=out.padEnd(at,' ')+txt;});
+      return out;}).join('\n');}
+
+  let seqT=[];
+  $('playSeq').onclick=()=>{seqT.forEach(clearTimeout);seqT=[];data.chords.slice(0,32).forEach((c,i)=>seqT.push(setTimeout(()=>show(c,true),i*1000)));};
+  $('up').onclick=()=>{st.shift=(st.shift+1)%12;render();};
+  $('down').onclick=()=>{st.shift=(st.shift+11)%12;render();};
+  $('reset').onclick=()=>{st.shift=0;render();};
+  $('copy').onclick=async()=>{const t=$('result').textContent;
+    try{await navigator.clipboard.writeText(t);$('copied').textContent='Copiado.';}
+    catch(e){const r=document.createRange();r.selectNodeContents($('result'));const s=getSelection();s.removeAllRanges();s.addRange(r);$('copied').textContent='Selecionado: use Ctrl+C.';}};
+  let typeT=null;
+  $('src').value=st.text;
+  $('src').addEventListener('input',()=>{clearTimeout(typeT);typeT=setTimeout(()=>{st.text=$('src').value;st.pick=null;st.shift=0;st.sel=null;update();},250);});
+  update();
+})();
+</script>
+</body>
+</html>

@@ -12,11 +12,19 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - **Mapa de funções:** sobe (subdominante), repousa (tônica), cai (dominante). Clique nos acordes para montar um caminho.
   - **Progressões mais comuns:** tocadas em bloco ou arpejo, com baixo na mão esquerda e condução de vozes na direita.
 
-Em breve: descobrir o tom e transpor, treino de ouvido, tocar e conferir (piano via MIDI).
+  - Aceita `?tonic=G&mode=maior` na URL para abrir direto em um tom.
+- **`descobrir-tom.html`:** Descobrir o Tom e Transpor.
+  - Lê acordes soltos ou a cifra inteira com letra (só as linhas de acordes são lidas).
+  - Tonalidade provável, com alternativas, armadura de clave e tom relativo.
+  - Função de cada acorde, incluindo dominantes secundárias, empréstimo modal e diminutos de passagem.
+  - Transposição para qualquer tom, mantendo os acordes alinhados sobre a letra.
+
+Em breve: treino de ouvido, tocar e conferir (piano via MIDI).
 
 ## Arquivos compartilhados
 
-- **`style.css`:** cores (claro/escuro), tipografia e controles comuns. Toda página nova deve incluí-lo.
+- **`style.css`:** cores (claro/escuro), tipografia e controles comuns (chips, botões, etiquetas de função). Toda página nova deve incluí-lo.
+- **`music.js`:** nomes e grafia de notas, áudio (Web Audio) e um teclado simples em SVG, expostos em `window.Music`.
 - **`theme.js`:** seletor de tema Auto/Claro/Escuro. Inclua no `<head>` (sem `defer`) e coloque `<div class="seg theme" id="theme"></div>` onde o seletor deve aparecer.
 
 O som é gerado no navegador (Web Audio API). No iPhone/iPad, desative o modo silencioso para ouvir.

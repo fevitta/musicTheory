@@ -14,6 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
+<script src="music.js"></script>
 <title>Campo Harmônico no Piano</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,9 +32,6 @@
 .controls .chip{min-width:31px;padding:6px 3px;font-size:13px}
 .controls .chip.wide{padding:6px 10px;font-family:var(--sans)}
 .controls .seg button{padding:6px 10px}
-.chip{border:1px solid var(--line);background:transparent;border-radius:8px;min-width:46px;padding:7px 10px;font-family:var(--mono);font-size:14px;transition:background .15s,border-color .15s}
-.chip:hover{border-color:var(--accent)}
-.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 .listen{display:inline-flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:4px}
 .listen svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
@@ -47,10 +45,6 @@
 .kbd-top .hint{font-family:var(--mono);font-size:12.5px}
 #kbd{display:block;width:100%;max-height:250px;min-width:420px;height:auto}
 .kbd-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:7px 12px;font-size:14px;display:inline-flex;gap:6px;align-items:center}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-.btn.primary:hover{color:var(--on-accent);filter:brightness(1.08)}
 .scale-line{font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
 .scale-line b{color:var(--ink);font-weight:500}
 .step{font-size:11px;color:var(--muted);opacity:.85}
@@ -59,10 +53,6 @@
 .info-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .big-cifra{font-family:var(--display);font-size:56px;line-height:1;font-weight:700}
 .roman{font-family:var(--display);font-size:22px;color:var(--muted)}
-.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap}
-.tag.T{background:var(--t-soft);color:var(--t)}
-.tag.SD{background:var(--sd-soft);color:var(--sd)}
-.tag.D{background:var(--d-soft);color:var(--d)}
 dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
 dt{color:var(--muted)}
 dd{margin:0;font-family:var(--mono);font-size:13.5px}
@@ -226,9 +216,7 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 <script>
 (function(){
-  const LET=['C','D','E','F','G','A','B'];
-  const NAT=[0,2,4,5,7,9,11];
-  const SOL={C:'Dó',D:'Ré',E:'Mi',F:'Fá',G:'Sol',A:'Lá',B:'Si'};
+  const {LET,NAT,SOL,acc,parse,niceT,playNotes}=Music;
   const MAJ=[0,2,4,5,7,9,11];
   const ROM=['I','II','III','IV','V','VI','VII'];
   const MODES={
@@ -309,11 +297,12 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
   const S={tonic:'C',mode:'maior',size:3,inv:0,names:'cifra',sel:0,view:'acorde',hand:'md',play:'bloco',sc:'campo',showModes:false};
   try{const s=JSON.parse(localStorage.getItem('ch-piano')||'null'); if(s) Object.assign(S,s);}catch(e){}
   S.names='cifra';
+  // Links de outras páginas: campo-harmonico.html?tonic=G&mode=maior
+  const q=new URLSearchParams(location.search);
+  if(/^[A-G][#b]?$/.test(q.get('tonic')||'')) S.tonic=q.get('tonic');
+  if(MODES[q.get('mode')]){S.mode=q.get('mode'); if(MODE_OPTS.slice(4).some(o=>o[0]===S.mode)) S.showModes=true;}
   function save(){try{localStorage.setItem('ch-piano',JSON.stringify(S));}catch(e){}}
 
-  const acc=a=>a===0?'':a===1?'♯':a===2?'𝄪':a===-1?'♭':a===-2?'𝄫':'';
-  function parse(t){const li=LET.indexOf(t[0]);let a=0;for(const ch of t.slice(1)) a+= ch==='#'?1:-1;return {li,pc:(NAT[li]+a+12)%12};}
-  function niceT(t){return t[0]+t.slice(1).replace(/#/g,'♯').replace(/b/g,'♭');}
 
   function build(){
     const M=MODES[S.mode]; const {li,pc}=parse(S.tonic);
@@ -341,24 +330,6 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
       return {d,root,notes,cifra:root.name+q[0],roman,quality:q[1],formula,fn:M.fn[d],voicing:named};
     });
     return {M,scale,chords};
-  }
-
-  // ---------- Audio ----------
-  let ctx=null;
-  function ac(){ if(!ctx){const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C();} if(ctx.state==='suspended') ctx.resume(); return ctx; }
-  function tone(m,t0,dur,vol){
-    const c=ac(); if(!c) return;
-    const f=440*Math.pow(2,(m-69)/12);
-    const g=c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+0.012); g.gain.exponentialRampToValueAtTime(vol*0.35,t0+0.35); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
-    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(4200,f*6);
-    const o1=c.createOscillator(); o1.type='triangle'; o1.frequency.value=f;
-    const o2=c.createOscillator(); o2.type='sine'; o2.frequency.value=f*2; const g2=c.createGain(); g2.gain.value=0.25;
-    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(c.destination);
-    o1.start(t0); o2.start(t0); o1.stop(t0+dur+0.05); o2.stop(t0+dur+0.05);
-  }
-  function playNotes(ms,{arp=0,dur=1.6,at=0}={}){
-    const c=ac(); if(!c) return; const t=c.currentTime+0.03+at; const v=0.22/Math.sqrt(ms.length);
-    ms.forEach((m,i)=>tone(m,t+i*arp,dur,v));
   }
 
   // ---------- Keyboard ----------

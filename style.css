@@ -53,8 +53,19 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--on-accent)}
 .seg.theme button{padding:5px 11px;font-size:13px}
+.chip{border:1px solid var(--line);background:transparent;border-radius:8px;min-width:46px;padding:7px 10px;font-family:var(--mono);font-size:14px;transition:background .15s,border-color .15s}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn{border:1px solid var(--line);background:transparent;border-radius:8px;padding:7px 12px;font-size:14px;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{color:var(--on-accent);filter:brightness(1.08)}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.tag.T{background:var(--t-soft);color:var(--t)}
+.tag.SD{background:var(--sd-soft);color:var(--sd)}
+.tag.D{background:var(--d-soft);color:var(--d)}
 
 @media (max-width:600px){
-  .seg button{min-height:40px}
+  .seg button,.chip,.btn{min-height:40px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

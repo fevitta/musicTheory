@@ -1,0 +1,66 @@
+// Base musical compartilhada: nomes e grafia de notas, áudio (Web Audio) e um teclado simples em SVG.
+// Expõe tudo em window.Music.
+(function(){
+  const LET=['C','D','E','F','G','A','B'];
+  const NAT=[0,2,4,5,7,9,11];
+  const SOL={C:'Dó',D:'Ré',E:'Mi',F:'Fá',G:'Sol',A:'Lá',B:'Si'};
+  const BLACK=new Set([1,3,6,8,10]);
+  const acc=a=>a===0?'':a===1?'♯':a===2?'𝄪':a===-1?'♭':a===-2?'𝄫':'';
+  // 'C#', 'Bb' → índice da letra e classe de altura
+  function parse(t){const li=LET.indexOf(t[0]);let a=0;for(const ch of t.slice(1)) a+= ch==='#'?1:-1;return {li,pc:(NAT[li]+a+12)%12};}
+  function niceT(t){return t[0]+t.slice(1).replace(/#/g,'♯').replace(/b/g,'♭');}
+  // Nota com a letra dada (índice 0–6) que soa na classe de altura pc
+  function spellAt(li,pc){li=((li%7)+7)%7;let a=pc-NAT[li];if(a>6)a-=12;if(a<-6)a+=12;
+    return {letter:LET[li],acc:a,pc,name:LET[li]+acc(a),sol:SOL[LET[li]]+acc(a)};}
+
+  // ---------- Áudio ----------
+  let ctx=null;
+  function ac(){ if(!ctx){const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C();} if(ctx.state==='suspended') ctx.resume(); return ctx; }
+  function tone(m,t0,dur,vol){
+    const c=ac(); if(!c) return;
+    const f=440*Math.pow(2,(m-69)/12);
+    const g=c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+0.012); g.gain.exponentialRampToValueAtTime(vol*0.35,t0+0.35); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(4200,f*6);
+    const o1=c.createOscillator(); o1.type='triangle'; o1.frequency.value=f;
+    const o2=c.createOscillator(); o2.type='sine'; o2.frequency.value=f*2; const g2=c.createGain(); g2.gain.value=0.25;
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(c.destination);
+    o1.start(t0); o2.start(t0); o1.stop(t0+dur+0.05); o2.stop(t0+dur+0.05);
+  }
+  function playNotes(ms,{arp=0,dur=1.6,at=0}={}){
+    const c=ac(); if(!c) return; const t=c.currentTime+0.03+at; const v=0.22/Math.sqrt(ms.length);
+    ms.forEach((m,i)=>tone(m,t+i*arp,dur,v));
+  }
+
+  // ---------- Teclado simples ----------
+  // notes: [{m, label, root}] — destaca as teclas; a extensão vai de low até o fim da oitava da nota mais aguda
+  function drawKeys(svg,notes,{low=48}={}){
+    const NS='http://www.w3.org/2000/svg', W=40,H=180,BW=24,BH=112;
+    const el=(tag,attrs)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);svg.appendChild(e);return e;};
+    svg.innerHTML='';
+    const top=Math.max(low+23,...notes.map(n=>n.m)); const high=low+Math.ceil((top-low+1)/12)*12-1;
+    const whites=(high-low+1)/12*7;
+    svg.setAttribute('viewBox',`0 0 ${whites*W+2} 190`);
+    svg.style.minWidth=whites>14?'540px':'420px';
+    const wi=[0,null,1,null,2,3,null,4,null,5,null,6];
+    const pos=m=>{const pc=m%12,o=Math.floor((m-low)/12); if(wi[pc]!==null) return {white:true,x:1+(o*7+wi[pc])*W}; return {white:false,x:1+(o*7+wi[pc-1]+1)*W-BW/2};};
+    const on=new Map(notes.map(n=>[n.m,n]));
+    const keys=[...Array(high-low+1)].map((_,i)=>low+i).map(m=>[m,pos(m)]);
+    const mono='IBM Plex Mono, monospace';
+    keys.filter(k=>k[1].white).forEach(([m,p])=>{const n=on.get(m),cx=p.x+(W-1)/2;
+      el('rect',{x:p.x,y:1,width:W-1,height:H,rx:5,fill:n?'var(--accent)':'var(--kw)',stroke:'var(--kw-edge)','stroke-width':1});
+      if(n){el('text',{x:cx,y:H-14,'text-anchor':'middle','font-size':13,'font-family':mono,'font-weight':600,fill:'var(--on-accent)'}).textContent=n.label||'';
+        if(n.root) el('circle',{cx,cy:H-36,r:4,fill:'var(--on-accent)'});}
+      if(m%12===0) el('text',{x:p.x+4,y:14,'font-size':9,'font-family':mono,fill:'var(--muted)'}).textContent='C'+(Math.floor(m/12)-1);});
+    keys.filter(k=>!k[1].white).forEach(([m,p])=>{const n=on.get(m),cx=p.x+BW/2;
+      el('rect',{x:p.x,y:0,width:BW,height:BH,rx:3,fill:n?'var(--accent)':'var(--kb)',stroke:'var(--kb)','stroke-width':n?3:1});
+      if(n){el('text',{x:cx,y:BH-10,'text-anchor':'middle','font-size':10,'font-family':mono,'font-weight':600,fill:'var(--on-accent)'}).textContent=n.label||'';
+        if(n.root) el('circle',{cx,cy:BH-28,r:3.2,fill:'var(--on-accent)'});}});
+    // Em telas estreitas, rola até as notas destacadas
+    const sc=svg.parentElement; if(!notes.length||sc.scrollWidth<=sc.clientWidth) return;
+    const k=svg.getBoundingClientRect().width/svg.viewBox.baseVal.width, xs=notes.map(n=>pos(n.m).x);
+    const lo=Math.min(...xs)*k, hi=(Math.max(...xs)+W)*k, cw=sc.clientWidth;
+    if(lo<sc.scrollLeft||hi>sc.scrollLeft+cw) sc.scrollTo({left:Math.max(0,hi-lo>cw?lo-8:(lo+hi-cw)/2),behavior:'smooth'});
+  }
+
+  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys};
+})();
