@@ -65,6 +65,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .tag.SD{background:var(--sd-soft);color:var(--sd)}
 .tag.D{background:var(--d-soft);color:var(--d)}
 
+.today-pill{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:12.5px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:4px 11px 4px 6px;white-space:nowrap}
+.today-pill svg{width:16px;height:16px;flex:none}
+.today-pill:hover{border-color:var(--accent);color:var(--accent)}
+.today-pill.met{color:var(--t);border-color:var(--t)}
+
 @media (max-width:600px){
   .seg button,.chip,.btn{min-height:40px}
 }

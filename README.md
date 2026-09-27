@@ -38,6 +38,11 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - Graus da escala: a cadência define o tom, a nota toca e depois resolve na tônica.
   - Progressões: quatro acordes no tom para identificar os graus.
   - Ditado melódico: ouça de 3 a 6 notas e toque de volta no teclado ou no piano MIDI.
+- **`progresso.html`:** Seu Progresso.
+  - Meta diária (5 a 30 min), sequência de dias batendo a meta e recorde, tempo total e acerto.
+  - Calendário das últimas semanas, minutos dos últimos 14 dias e acerto por exercício (7 dias, 30 dias ou tudo).
+  - Notas para revisar da Leitura de Partitura.
+  - Backup: exporta e importa um arquivo `.json` (importar soma o histórico sem duplicar); pede ao navegador para não apagar os dados.
 
 Em breve: tocar e conferir (escalas e acordes pelo piano via MIDI).
 
@@ -45,6 +50,7 @@ Em breve: tocar e conferir (escalas e acordes pelo piano via MIDI).
 
 - **`style.css`:** cores (claro/escuro), tipografia e controles comuns (chips, botões, etiquetas de função). Toda página nova deve incluí-lo.
 - **`music.js`:** nomes e grafia de notas, áudio (Web Audio, com clique de metrônomo), teclado em SVG (simples e tocável) e piano MIDI, expostos em `window.Music`.
+- **`progresso.js`:** registro do progresso em `localStorage` (chave `tp-progresso`, um resumo por dia). Páginas de treino chamam `Progress.track()` uma vez e `Progress.log('pagina:exercicio', acertou)` a cada resposta; toda página com `.top-bar` mostra o resumo do dia.
 - **`theme.js`:** seletor de tema Auto/Claro/Escuro. Inclua no `<head>` (sem `defer`) e coloque `<div class="seg theme" id="theme"></div>` onde o seletor deve aparecer.
 
 O som é gerado no navegador (Web Audio API). No iPhone/iPad, desative o modo silencioso para ouvir.

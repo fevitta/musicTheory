@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="progresso.js"></script>
 <title>Leitura de Partitura</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -317,7 +318,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   function startClock(){if(!R.start) R.start=Date.now();}
 
   function success(it,msg){
-    it.done=true; noteWeak(it); R.i++; R.revealed=false; R.ghost=null;
+    it.done=true; noteWeak(it); Progress.log('leitura:'+S.ex,it.tries===0); R.i++; R.revealed=false; R.ghost=null;
     setFb(msg||((it.tries?'Isso! ':'Certo! ')+itemLabel(it)),'ok');
     if(R.i>=total()){R.end=Date.now(); stats(); drawAll(); setTimeout(finish,500); return;}
     ensure(R.i+12); drawAll(); stats();
@@ -325,7 +326,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   }
   function wrong(it,msg){
     it.tries++; R.errors++;
-    if(S.ex==='sequencia'){it.done=true; noteWeak(it); R.i++;
+    if(S.ex==='sequencia'){it.done=true; noteWeak(it); Progress.log('leitura:sequencia',false); R.i++;
       setFb('Era '+noteName(it.notes[0])+'. Siga em frente.','err');
       if(R.i>=total()){R.end=Date.now(); stats(); drawAll(); setTimeout(finish,500); return;}
       ensure(R.i+12); drawAll(); stats(); return;}
@@ -579,7 +580,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   // iOS só libera o áudio em touchend/click: acorda o contexto de som no primeiro toque
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
 
-  controls(); newRound();
+  Progress.track(); controls(); newRound();
   if(document.fonts) document.fonts.ready.then(drawStaff);
 })();
 </script>

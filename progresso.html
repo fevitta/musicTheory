@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Seu progresso nos treinos: meta diária, sequência de dias, calendário de prática, desempenho por exercício e backup dos dados.">
+<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10121A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teoria no Piano">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<script src="music.js"></script>
+<script src="progresso.js"></script>
+<title>Seu Progresso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+section{display:flex;flex-direction:column;gap:12px}
+.section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px}
+.today{display:flex;gap:18px;align-items:center}
+.today svg{width:120px;height:120px;flex:none}
+.today .big{font-family:var(--display);font-weight:700;font-size:44px;line-height:1}
+.today .big small{font-size:.5em;color:var(--muted);font-weight:500}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.tile b{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.1}
+.tile small{font-size:12.5px;color:var(--muted)}
+.chart{display:block;width:100%;height:auto;overflow:visible}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;color:var(--muted)}
+.legend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px}
+.tip{position:fixed;z-index:10;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.35;padding:6px 9px;border-radius:8px;max-width:240px;opacity:0;transition:opacity .08s}
+.tip b{font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:13px}
+td a{color:var(--ink);text-decoration:none;font-weight:500}
+td a:hover{color:var(--accent);text-decoration:underline}
+.meter{display:inline-block;width:56px;height:6px;border-radius:99px;background:var(--line);overflow:hidden;vertical-align:middle;margin-left:8px}
+.meter span{display:block;height:100%;background:var(--t);border-radius:inherit}
+.empty{color:var(--muted);font-size:14px;margin:0}
+.missed{display:flex;flex-wrap:wrap;gap:6px}
+.missed a{font-family:var(--mono);font-size:13px;padding:4px 10px;border-radius:999px;background:var(--d-soft);color:var(--d);text-decoration:none}
+.status{font-size:14px;margin:0;display:flex;gap:8px;align-items:flex-start}
+.status i{flex:none;width:10px;height:10px;border-radius:50%;margin-top:6px}
+.btn.danger:hover{border-color:var(--d);color:var(--d)}
+p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
+@media (max-width:760px){ .top{grid-template-columns:1fr} }
+@media (max-width:420px){ .today svg{width:92px;height:92px} .today .big{font-size:36px} .tile b{font-size:26px} th.hide,td.hide{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top-bar">
+      <a class="eyebrow" href="index.html">← Teoria musical no piano</a>
+      <div class="seg theme" id="theme" role="group" aria-label="Tema"></div>
+    </div>
+    <h1>Seu Progresso</h1>
+    <p class="lede">Tempo de prática, meta do dia, sequência de dias e como você vai em cada exercício. Tudo fica guardado só neste navegador.</p>
+  </header>
+
+  <section>
+    <div class="top">
+      <div class="card">
+        <span class="lbl">Hoje</span>
+        <div class="today"><svg id="ring" viewBox="0 0 120 120" role="img"></svg>
+          <div style="display:flex;flex-direction:column;gap:6px"><div class="big" id="todayMin"></div><span class="hint" id="todayInfo"></span></div></div>
+        <div class="row"><span class="hint">Meta diária (min):</span><div class="seg" id="goals" role="group" aria-label="Meta diária em minutos"></div></div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><span class="lbl">Sequência</span><b id="tStreak"></b><small>dias seguidos batendo a meta</small></div>
+        <div class="tile"><span class="lbl">Melhor sequência</span><b id="tBest"></b><small>seu recorde</small></div>
+        <div class="tile"><span class="lbl">Tempo total</span><b id="tTotal"></b><small id="tDays"></small></div>
+        <div class="tile"><span class="lbl">Respostas</span><b id="tAns"></b><small id="tAcc"></small></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Calendário</h2><span class="hint">Minutos de prática por dia nas últimas semanas.</span></div>
+    <div class="card">
+      <div class="scroll"><svg class="chart" id="cal" role="img"></svg></div>
+      <div class="legend" id="calLegend"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Últimos 14 dias</h2><span class="hint">Minutos de prática por dia.</span></div>
+    <div class="card"><svg class="chart" id="bars" role="img"></svg><div class="legend" id="barLegend"></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Por exercício</h2><div class="seg" id="periods" role="group" aria-label="Período"></div></div>
+    <div class="card" id="exCard"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Notas para revisar</h2><span class="hint">As notas em que você mais erra na Leitura de Partitura.</span></div>
+    <div class="card" id="weakCard"></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Seus dados</h2></div>
+    <div class="card">
+      <p class="note">O progresso fica guardado neste navegador, neste aparelho. Nada vai para a internet. Limpar os dados do navegador apaga tudo, e cada aparelho tem o seu próprio histórico. Faça um backup de vez em quando: o arquivo serve também para levar o progresso para outro aparelho.</p>
+      <p class="status" id="persist"></p>
+      <div class="row">
+        <button class="btn primary" id="export" type="button">Exportar backup</button>
+        <button class="btn" id="importBtn" type="button">Importar backup</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+        <button class="btn" id="protect" type="button" hidden>Proteger meus dados</button>
+        <button class="btn danger" id="wipe" type="button" style="margin-left:auto">Apagar tudo</button>
+      </div>
+      <span class="hint" id="dataMsg" aria-live="polite"></span>
+    </div>
+  </section>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+(function(){
+  const P=Progress, $=id=>document.getElementById(id), NS='http://www.w3.org/2000/svg';
+  function el(parent,tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;parent.appendChild(e);return e;}
+  function h(tag,attrs={},...kids){const e=document.createElement(tag);for(const k in attrs){if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k]);}kids.flat().forEach(c=>c!=null&&e.append(c));return e;}
+  const MONTHS=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const WEEK=['dom','seg','ter','qua','qui','sex','sáb'];
+  const parseKey=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
+  const fmtDay=k=>{const t=parseKey(k);return WEEK[t.getDay()]+', '+t.getDate()+' '+MONTHS[t.getMonth()];};
+  const fmtMin=m=>m<1&&m>0?'<1 min':m<60?Math.round(m)+' min':Math.floor(m/60)+' h '+String(Math.round(m%60)).padStart(2,'0')+' min';
+  const pct=(ok,n)=>n?Math.round(100*ok/n)+'%':'–';
+  let period=7;
+
+  // Tooltip único que segue o ponteiro
+  const tip=$('tip');
+  function hover(node,html){
+    node.addEventListener('pointerenter',e=>{tip.innerHTML=html;tip.style.opacity=1;move(e);});
+    node.addEventListener('pointermove',move);
+    node.addEventListener('pointerleave',()=>tip.style.opacity=0);
+  }
+  function move(e){const w=tip.offsetWidth,hh=tip.offsetHeight;let x=e.clientX+12,y=e.clientY-hh-10;
+    if(x+w>innerWidth-8) x=e.clientX-w-12; if(y<8) y=e.clientY+16; tip.style.left=x+'px'; tip.style.top=y+'px';}
+  addEventListener('scroll',()=>tip.style.opacity=0,{passive:true});
+
+  // Rampa sequencial de um só matiz (a cor de destaque sobre a superfície); meta cumprida = cor cheia
+  const level=(m,goal)=>m<=0?0:m>=goal?4:m>=goal*0.66?3:m>=goal*0.33?2:1;
+  const FILL=['var(--line)','color-mix(in srgb, var(--accent) 22%, var(--surface))','color-mix(in srgb, var(--accent) 45%, var(--surface))','color-mix(in srgb, var(--accent) 70%, var(--surface))','var(--accent)'];
+
+  function render(){
+    const d=P.read(), today=P.dayKey(), day=d.days[today], st=P.streak(d), goal=d.goal;
+    // ----- Hoje -----
+    const m=P.minutes(day), f=Math.min(1,m/goal), ring=$('ring'); ring.innerHTML='';
+    const R=50,C=2*Math.PI*R;
+    el(ring,'circle',{cx:60,cy:60,r:R,fill:'none',stroke:'var(--line)','stroke-width':12});
+    if(f>0) el(ring,'circle',{cx:60,cy:60,r:R,fill:'none',stroke:f>=1?'var(--t)':'var(--accent)','stroke-width':12,'stroke-linecap':'round','stroke-dasharray':`${(f*C).toFixed(1)} ${C.toFixed(1)}`,transform:'rotate(-90 60 60)'});
+    el(ring,'text',{x:60,y:66,'text-anchor':'middle','font-size':20,'font-weight':600,fill:'var(--ink)',style:'font-family:var(--mono)'},Math.round(f*100)+'%');
+    ring.setAttribute('aria-label',`Meta de hoje: ${Math.floor(m)} de ${goal} minutos`);
+    $('todayMin').innerHTML=''; $('todayMin').append(String(Math.floor(m)),h('small',{},' / '+goal+' min'));
+    $('todayInfo').textContent=st.today?'Meta de hoje cumprida!':day&&day.n?`${day.n} respostas hoje, ${pct(day.ok,day.n)} de acerto. Faltam ${Math.ceil(goal-m)} min.`:'Nenhum treino hoje ainda. Escolha um exercício na página inicial.';
+    const gb=$('goals'); gb.innerHTML='';
+    [5,10,15,20,30].forEach(g=>{const b=h('button',{type:'button','aria-pressed':String(goal===g),'aria-label':g+' minutos'},String(g));b.onclick=()=>{P.setGoal(g);render();};gb.append(b);});
+    // ----- Totais -----
+    const days=Object.entries(d.days), tot=days.reduce((a,[,x])=>({ms:a.ms+x.ms,n:a.n+x.n,ok:a.ok+x.ok}),{ms:0,n:0,ok:0});
+    $('tStreak').textContent=st.current+(st.current===1?' dia':' dias');
+    $('tBest').textContent=st.best+(st.best===1?' dia':' dias');
+    $('tTotal').textContent=fmtMin(tot.ms/60000);
+    const nd=days.filter(([,x])=>x.ms>0||x.n>0).length; $('tDays').textContent=nd+(nd===1?' dia':' dias')+' com treino';
+    $('tAns').textContent=tot.n.toLocaleString('pt-BR');
+    $('tAcc').textContent=tot.n?pct(tot.ok,tot.n)+' de acerto':'nenhuma ainda';
+    calendar(d); bars(d); exTable(d); weak();
+  }
+
+  // ----- Calendário (semanas em colunas, domingo em cima) -----
+  function calendar(d){
+    const svg=$('cal'); svg.innerHTML=''; const weeks=Math.max(12,Math.min(26,Math.floor(($('cal').parentElement.clientWidth-40)/15))), CELL=12, GAP=3, X0=30, Y0=18;
+    const today=P.dayKey(), t=parseKey(today), start=P.addDays(today,-(weeks-1)*7-t.getDay());
+    const W=X0+weeks*(CELL+GAP), H=Y0+7*(CELL+GAP);
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.style.maxWidth=Math.round(W*1.6)+'px';
+    [1,3,5].forEach(r=>el(svg,'text',{x:X0-6,y:Y0+r*(CELL+GAP)+CELL-2,'text-anchor':'end','font-size':9,fill:'var(--muted)',style:'font-family:var(--sans)'},WEEK[r]));
+    let lastMonth=-1, lastLabel=-9, practiced=0;
+    for(let w=0;w<weeks;w++) for(let r=0;r<7;r++){
+      const k=P.addDays(start,w*7+r); if(k>today) continue;
+      const dt=parseKey(k); if(r===0&&dt.getMonth()!==lastMonth){lastMonth=dt.getMonth(); if(w<weeks-1&&w-lastLabel>=3&&(lastLabel=w)>=0) el(svg,'text',{x:X0+w*(CELL+GAP),y:10,'font-size':9,fill:'var(--muted)',style:'font-family:var(--sans)'},MONTHS[lastMonth]);}
+      const x=d.days[k], mm=P.minutes(x), lv=level(mm,d.goal); if(lv) practiced++;
+      const rect=el(svg,'rect',{x:X0+w*(CELL+GAP),y:Y0+r*(CELL+GAP),width:CELL,height:CELL,rx:2.5,fill:FILL[lv],stroke:k===today?'var(--ink)':'none','stroke-width':k===today?1.2:0});
+      hover(rect,`<b>${fmtDay(k)}</b><br>${mm?fmtMin(mm):'Sem treino'}${x&&x.n?' · '+x.n+' respostas ('+pct(x.ok,x.n)+')':''}${lv===4?'<br>Meta cumprida':''}`);
+    }
+    svg.setAttribute('aria-label',`Calendário das últimas ${weeks} semanas: ${practiced} dias com treino.`);
+    const lg=$('calLegend'); lg.innerHTML='';
+    lg.append(h('span',{},'Menos'),...FILL.map((c,i)=>h('span',{class:'sw',style:'background:'+c,title:['sem treino','até ⅓ da meta','até ⅔ da meta','quase a meta','meta cumprida'][i]})),h('span',{},'Mais'),h('span',{class:'hint'},'Cor cheia: meta cumprida. Contorno: hoje.'));
+  }
+
+  // ----- Barras dos últimos 14 dias -----
+  function bars(d){
+    const svg=$('bars'); svg.innerHTML=''; const N=14, today=P.dayKey();
+    const ks=[...Array(N)].map((_,i)=>P.addDays(today,i-N+1)), vals=ks.map(k=>P.minutes(d.days[k]));
+    const max=Math.max(d.goal*1.25,...vals), W=Math.max(300,Math.min(760,svg.parentElement.clientWidth-32||560)), H=160, L=34, B=24, T=10, plotH=H-B-T, bw=(W-L)/N;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.style.maxWidth=W+'px';
+    const y=v=>T+plotH-v/max*plotH;
+    const step=max>90?30:max>40?15:max>20?10:5;
+    for(let v=0;v<=max;v+=step){el(svg,'line',{x1:L,x2:W,y1:y(v),y2:y(v),stroke:'var(--line)','stroke-width':1});
+      el(svg,'text',{x:L-6,y:y(v)+3,'text-anchor':'end','font-size':10,fill:'var(--muted)',style:'font-family:var(--mono)'},String(v));}
+    ks.forEach((k,i)=>{const v=vals[i], x=L+i*bw+bw*0.2, w=bw*0.6, top=y(v), hgt=T+plotH-top;
+      if(v>0){const r=Math.min(4,hgt,w/2);
+        el(svg,'path',{d:`M${x} ${T+plotH} V${top+r} Q${x} ${top} ${x+r} ${top} H${x+w-r} Q${x+w} ${top} ${x+w} ${top+r} V${T+plotH} Z`,fill:v>=d.goal?'var(--t)':'var(--accent)'});}
+      const dt=parseKey(k); el(svg,'text',{x:x+w/2,y:H-8,'text-anchor':'middle','font-size':10,fill:k===today?'var(--ink)':'var(--muted)','font-weight':k===today?600:400,style:'font-family:var(--sans)'},k===today?'hoje':String(dt.getDate()));
+      const hit=el(svg,'rect',{x:L+i*bw,y:T,width:bw,height:plotH,fill:'transparent','aria-label':fmtDay(k)+': '+fmtMin(v)});
+      const x_=d.days[k]; hover(hit,`<b>${fmtDay(k)}</b><br>${v?fmtMin(v):'Sem treino'}${x_&&x_.n?' · '+x_.n+' respostas':''}`);});
+    el(svg,'line',{x1:L,x2:W,y1:y(d.goal),y2:y(d.goal),stroke:'var(--ink)','stroke-width':1.2,'stroke-dasharray':'5 4'});
+    const lg=$('barLegend'); lg.innerHTML=''; lg.append(h('span',{},h('span',{class:'sw',style:'background:var(--t)'}),' Meta cumprida'),h('span',{},h('span',{class:'sw',style:'background:var(--accent)'}),' Abaixo da meta'),h('span',{},'– – Meta de '+d.goal+' min'));
+    svg.setAttribute('aria-label','Minutos por dia nos últimos 14 dias: '+ks.map((k,i)=>fmtDay(k)+' '+Math.round(vals[i])).join('; '));
+  }
+
+  // ----- Tabela por exercício -----
+  function exTable(d){
+    const pb=$('periods'); pb.innerHTML='';
+    [[7,'7 dias'],[30,'30 dias'],[0,'Tudo']].forEach(([v,l])=>{const b=h('button',{type:'button','aria-pressed':String(period===v)},l);b.onclick=()=>{period=v;exTable(P.read());};pb.append(b);});
+    const today=P.dayKey(), from=period?P.addDays(today,-(period-1)):'0000', agg={};
+    Object.entries(d.days).forEach(([k,day])=>{if(k<from) return; Object.entries(day.ex||{}).forEach(([e,v])=>{const a=agg[e]||(agg[e]={n:0,ok:0,ms:0,last:k});a.n+=v.n;a.ok+=v.ok;a.ms+=v.ms;if(k>a.last)a.last=k;});});
+    const card=$('exCard'); card.innerHTML='';
+    const rows=Object.entries(agg).filter(([,a])=>a.n>0).sort((a,b)=>b[1].n-a[1].n);
+    if(!rows.length){card.append(h('p',{class:'empty'},period?'Nenhum treino neste período.':'Nenhum treino registrado ainda. Os exercícios de Leitura, Primeira Vista, Ritmo e Ouvido contam aqui.'));return;}
+    const t=h('table',{},h('tr',{},h('th',{},'Exercício'),h('th',{class:'num'},'Respostas'),h('th',{class:'num'},'Acerto'),h('th',{class:'num hide'},'Tempo'),h('th',{class:'num hide'},'Último')));
+    rows.forEach(([e,a])=>{const [name,url]=P.EXS[e]||[e,'index.html'], p=Math.round(100*a.ok/a.n);
+      t.append(h('tr',{},h('td',{},h('a',{href:url},name)),h('td',{class:'num'},String(a.n)),
+        h('td',{class:'num'},p+'%',h('span',{class:'meter','aria-hidden':'true'},h('span',{style:'width:'+p+'%'}))),
+        h('td',{class:'num hide'},fmtMin(a.ms/60000)),h('td',{class:'num hide'},a.last===today?'hoje':fmtDay(a.last).split(', ')[1])));});
+    card.append(h('div',{class:'scroll'},t),h('span',{class:'hint'},'Acerto: respostas certas de primeira. No ritmo e na primeira vista, conta como certo o exercício com 80% ou mais.'));
+  }
+
+  // ----- Notas fracas da leitura -----
+  function weak(){
+    const card=$('weakCard'); card.innerHTML=''; let W={};
+    try{W=JSON.parse(localStorage.getItem('leitura-fracas'))||{};}catch(e){}
+    const {LET,SOL,acc}=Music, CL={sol:'Sol',fa:'Fá'};
+    const list=Object.entries(W).filter(([,c])=>c>0).sort((a,b)=>b[1]-a[1]).slice(0,16);
+    if(!list.length){card.append(h('p',{class:'empty'},'Nenhuma nota pendente. Quando você errar uma nota na Leitura de Partitura, ela aparece aqui até você acertar de novo.'));return;}
+    const box=h('div',{class:'missed'});
+    list.forEach(([k,c])=>{const [clef,d,a]=k.split('|'), dd=+d, name=SOL[LET[dd%7]]+acc(+a)+Math.floor(dd/7);
+      box.append(h('a',{href:'leitura-partitura.html',title:'Clave de '+CL[clef]},name+' ('+CL[clef]+')'+(c>1?' ×'+c:'')));});
+    card.append(box,h('span',{class:'hint'},'Na Leitura de Partitura, use o botão “Revisar as que errei” para treinar só estas.'));
+  }
+
+  // ----- Dados -----
+  async function persistStatus(){
+    const p=await P.isProtected(), s=$('persist'); s.innerHTML='';
+    if(p===true){s.append(h('i',{style:'background:var(--t)'}),'Armazenamento protegido: o navegador não vai apagar seus dados sozinho para liberar espaço.');$('protect').hidden=true;}
+    else if(p===false){s.append(h('i',{style:'background:var(--sd)'}),'O navegador pode apagar os dados se faltar espaço ou se você passar muito tempo sem abrir o site (no iPhone, cerca de 7 dias). Toque em “Proteger meus dados” e, no iPhone, adicione o site à Tela de Início.');$('protect').hidden=false;}
+    else s.append(h('i',{style:'background:var(--line)'}),'Este navegador não informa se os dados estão protegidos. Faça backups de vez em quando.');
+  }
+  const msg=t=>{$('dataMsg').textContent=t;};
+  $('export').onclick=()=>{P.exportData();msg('Backup baixado. Guarde o arquivo em um lugar seguro (Drive, iCloud, e-mail).');};
+  $('importBtn').onclick=()=>$('importFile').click();
+  $('importFile').onchange=async e=>{const f=e.target.files[0]; if(!f) return;
+    try{const n=P.importData(await f.text()); msg('Backup importado ('+n+' itens). O histórico foi somado ao que já estava aqui.'); render(); P.refresh();}
+    catch(err){msg('Não deu para importar: '+(err.message||'arquivo inválido')+'.');}
+    e.target.value='';};
+  $('protect').onclick=async()=>{const ok=await P.protect(true); msg(ok?'Pronto: dados protegidos.':'O navegador não autorizou. No iPhone, adicione o site à Tela de Início; em outros, use o site com frequência ou faça backups.'); persistStatus();};
+  $('wipe').onclick=()=>{if(!confirm('Apagar todo o progresso, recordes, notas para revisar e configurações deste navegador? Isso não pode ser desfeito. Exporte um backup antes, se quiser guardar.')) return;
+    P.clearAll(); render(); P.refresh(); msg('Tudo apagado.');};
+
+  let rw=innerWidth; addEventListener('resize',()=>{if(innerWidth!==rw){rw=innerWidth;calendar(P.read());bars(P.read());}});
+  render(); persistStatus();
+})();
+</script>
+</body>
+</html>

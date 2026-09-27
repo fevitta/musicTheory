@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="progresso.js"></script>
 <title>Treino de Ouvido</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -191,7 +192,7 @@ section{display:flex;flex-direction:column;gap:12px}
       showStats(); q.play(true);
     }
     function choose(o,b){
-      answered=true; const ok=o.key===q.answer; n++; if(ok) right++; else {const k=q.labelOf(q.answer)+' → '+q.labelOf(o.key);conf.set(k,(conf.get(k)||0)+1);}
+      answered=true; const ok=o.key===q.answer; Progress.log('ouvido:'+S.ex,ok); n++; if(ok) right++; else {const k=q.labelOf(q.answer)+' → '+q.labelOf(o.key);conf.set(k,(conf.get(k)||0)+1);}
       [...grid.children].forEach((c,i)=>{if(q.options[i].key===q.answer) c.classList.add('good');}); if(!ok) b.classList.add('bad');
       fb.className='feedback '+(ok?'ok':'err'); fb.textContent=(ok?'Certo! ':'Era '+q.labelOf(q.answer)+'. ')+(q.explain||'')+(q.compare?' Toque nas opções para comparar.':'');
       if(q.after) q.after();
@@ -279,7 +280,7 @@ section{display:flex;flex-direction:column;gap:12px}
       if(answered&&f!==d) s.append(h('small',{},'era '+Sc.roman[d])); slots.append(s);});}
     function pick(d){if(answered){return;} filled.push(d); draw(); if(filled.length===4) check();}
     function check(){
-      answered=true; n++; const ok=filled.every((f,i)=>f===q.degs[i]); if(ok) right++;
+      answered=true; n++; const ok=filled.every((f,i)=>f===q.degs[i]); Progress.log('ouvido:progressoes',ok); if(ok) right++;
       filled.forEach((f,i)=>{if(f!==q.degs[i]){const k=Sc.roman[q.degs[i]]+' → '+Sc.roman[f];conf.set(k,(conf.get(k)||0)+1);}});
       draw(); fb.className='feedback '+(ok?'ok':'err'); fb.textContent=ok?'Certo! '+q.degs.map(d=>Sc.roman[d]).join(' – '):'A progressão era '+q.degs.map(d=>Sc.roman[d]).join(' – ')+'. Ouça de novo e compare.';
       bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats(); if(ok) timer=setTimeout(next,1500);
@@ -315,7 +316,7 @@ section{display:flex;flex-direction:column;gap:12px}
       playNotes([m],{dur:0.8}); if(!q||pos>=q.ms.length) return;
       const want=q.ms[pos];
       if((m-want)%12===0){kb.flash(m,'var(--t)');pos++;draw();
-        if(pos>=q.ms.length){n++; if(!errs) right++; fb.className='feedback ok'; fb.textContent=(errs?'Completo, com '+errs+(errs>1?' erros.':' erro.'):'Perfeito!')+' '+q.names.join(' – ');
+        if(pos>=q.ms.length){n++; Progress.log('ouvido:ditado',!errs); if(!errs) right++; fb.className='feedback ok'; fb.textContent=(errs?'Completo, com '+errs+(errs>1?' erros.':' erro.'):'Perfeito!')+' '+q.names.join(' – ');
           bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats(); if(!errs) timer=setTimeout(next,1800);}
       } else {kb.flash(m,'var(--d)'); errs++; const k='nota '+(pos+1)+': '+q.names[pos]; conf.set(k,(conf.get(k)||0)+1);
         fb.className='feedback err'; fb.textContent='Não é essa. Ouça de novo se precisar.';}
@@ -328,7 +329,7 @@ section{display:flex;flex-direction:column;gap:12px}
   function start(){stop();stop=()=>{};const m=$('main');m.innerHTML='';
     ({intervalos:Intervalos,acordes:Acordes,graus:Graus,progressoes:Progressoes,ditado:Ditado})[S.ex](m);}
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
-  controls(); start();
+  Progress.track(); controls(); start();
 })();
 </script>
 </body>

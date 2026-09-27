@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="progresso.js"></script>
 <title>Leitura à Primeira Vista</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -300,7 +301,7 @@ section{display:flex;flex-direction:column;gap:12px}
     if(m===n.m){
       kb.flash(m,'var(--t)'); W.colors=W.colors||{}; W.colors[i]=W.tries[i]?'var(--sd)':'var(--t)'; if(!W.tries[i]) W.firstOk++;
       W.pos++; kb.set({marks:new Set()});
-      if(W.pos>=idx.length){W.done=true; draw({colors:W.colors}); const pct=Math.round(100*W.firstOk/idx.length); record(pct);
+      if(W.pos>=idx.length){W.done=true; draw({colors:W.colors}); const pct=Math.round(100*W.firstOk/idx.length); record(pct); Progress.log('vista:esperar',pct>=80);
         $('fb').className='feedback '+(pct>=80?'ok':'err'); $('fb').textContent=W.firstOk+' de '+idx.length+' de primeira ('+pct+'%) em '+Math.round((Date.now()-W.start)/1000)+' s.';
         countMsg(pct===100?'Perfeito! Aperte Nova melodia.':'Aperte Nova melodia ou Ouvir para escutar como era.'); return;}
       $('fb').textContent=''; draw({colors:W.colors,cur:idx[W.pos]});
@@ -344,7 +345,7 @@ section{display:flex;flex-direction:column;gap:12px}
       else if(d<=good){st.ok++;colors[i]='var(--t)';p.col='var(--t)';} else {st.near++;colors[i]='var(--sd)';p.col='var(--sd)';}});
     const extra=P.length-used.size, n=E.length;
     draw({colors,taps:P.map(p=>({u:(p.t-r.T)/(b/4),col:p.col||'var(--d)'})),expected:idx.map(i=>EV[i].start)});
-    const pct=Math.max(0,Math.round(100*(st.ok+0.5*st.near-0.5*extra)/n)); record(pct);
+    const pct=Math.max(0,Math.round(100*(st.ok+0.5*st.near-0.5*extra)/n)); record(pct); Progress.log('vista:tempo',pct>=80);
     $('fb').className='feedback '+(pct>=80?'ok':'err');
     $('fb').textContent=pct+'% · certas no tempo '+st.ok+' · fora do tempo '+st.near+' · erradas '+st.wrong+' · perdidas '+st.miss+' · a mais '+extra;
     countMsg(pct>=80?'Muito bem! Aperte Nova melodia ou tente mais rápido.':'Tente de novo, ou use “Esperar por mim” para ler com calma primeiro.');
@@ -376,7 +377,7 @@ section{display:flex;flex-direction:column;gap:12px}
   let rw=innerWidth; addEventListener('resize',()=>{if(innerWidth!==rw&&!run){rw=innerWidth; draw(lastDraw);}});
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
 
-  controls(); newExercise();
+  Progress.track(); controls(); newExercise();
   if(document.fonts) document.fonts.ready.then(()=>{if(!run) draw(lastDraw);});
 })();
 </script>

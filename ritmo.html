@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="progresso.js"></script>
 <title>Ritmo e Figuras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -341,7 +342,7 @@ details summary{cursor:pointer;font-weight:600}
       draw({colors,taps:tapMarks,expected:notes.map(o=>o.e.start)});
       const pct=Math.max(0,Math.round(100*(res.ok+0.5*res.near-0.5*extra)/n));
       const dev=res.devs.length?res.devs.reduce((a,x)=>a+x,0)/res.devs.length*1000:null;
-      sess.n++; sess.sum+=pct; if(dev!=null){sess.dev+=dev*res.devs.length;sess.devN+=res.devs.length;} store('ritmo-sessao',sess); showStats();
+      Progress.log('ritmo:tocar',pct>=80); sess.n++; sess.sum+=pct; if(dev!=null){sess.dev+=dev*res.devs.length;sess.devN+=res.devs.length;} store('ritmo-sessao',sess); showStats();
       fb.className='feedback '+(pct>=80?'ok':'err');
       fb.textContent=(pct===100?'Perfeito! ':pct>=80?'Muito bem! ':'')+pct+'% · no tempo '+res.ok+' · quase '+res.near+' · perdidas '+res.miss+' · a mais '+extra+(dev!=null?' · '+fmtDev(dev):'');
       countDots(-1,pct>=80?'Aperte Próximo ritmo ou toque de novo.':'Ouça o ritmo e tente de novo.');
@@ -390,7 +391,7 @@ details summary{cursor:pointer;font-weight:600}
     function hear(){if(playing) return; const sch=schedule(q.base,{playRhythm:true,metro:S.metro,countIn:true}); if(!sch) return;
       playing=true; bHear.disabled=true; setTimeout(()=>{playing=false;bHear.disabled=false;},(sch.end-sch.c.currentTime)*1000+300);}
     function choose(i,b){
-      if(answered) return; answered=true; const ok=q.all[i]===q.base;
+      if(answered) return; answered=true; const ok=q.all[i]===q.base; Progress.log('ritmo:ouvir',ok);
       [...opts.children].forEach((o,k)=>{if(q.all[k]===q.base) o.classList.add('good');}); if(!ok) b.classList.add('bad');
       if(ok) right++; n++;
       fb.className='feedback '+(ok?'ok':'err'); fb.textContent=ok?'Certo!':'Não era essa. A certa está em verde: ouça de novo e compare.';
@@ -418,7 +419,7 @@ details summary{cursor:pointer;font-weight:600}
       const qid=++qseq; body.innerHTML=''; answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       const grid=h('div',{class:'opts '+(figs?'figs':'txts')});
       options.forEach((o,i)=>{const b=h('button',{class:'opt'+(figs?'':' txt'),type:'button'},o);
-        b.onclick=()=>{if(answered) return; answered=true; const ok=i===correctIdx; if(ok) right++; n++;
+        b.onclick=()=>{if(answered) return; answered=true; const ok=i===correctIdx; Progress.log('ritmo:valores',ok); if(ok) right++; n++;
           grid.children[correctIdx].classList.add('good'); if(!ok) b.classList.add('bad');
           fb.className='feedback '+(ok?'ok':'err'); fb.textContent=(ok?'Certo! ':'Não. ')+explain;
           bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats();
@@ -478,7 +479,7 @@ details summary{cursor:pointer;font-weight:600}
   }
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
 
-  controls(); table(); start();
+  Progress.track(); controls(); table(); start();
   if(document.fonts) document.fonts.ready.then(()=>{table();});
 })();
 </script>
