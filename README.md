@@ -19,10 +19,16 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - Função de cada acorde, incluindo dominantes secundárias, empréstimo modal e diminutos de passagem.
   - Transposição para qualquer tom, mantendo os acordes alinhados sobre a letra.
 - **`leitura-partitura.html`:** Leitura de Partitura.
-  - Clave de Sol ou de Fá; tom e escala (Maior, Menor, Menor harmônica, Menor melódica), com armadura de clave.
-  - 30 notas por rodada, na pauta ou com linhas suplementares; toque cada uma no teclado da tela (ou num piano MIDI).
-  - Errou, tenta de novo; depois de 3 erros a tecla certa é marcada. No fim: acertos de primeira, erros, tempo e as notas que mais custaram.
-  - Opções: exigir a oitava certa, nomes nas teclas, som.
+  - Exercícios: nota no teclado, nomear a nota, escrever na pauta, ditado (ouvir e achar), intervalos, acordes (tríades do campo) e sequência (melodia de 6 notas, sem parar).
+  - Clave de Sol, de Fá ou pauta dupla; tom e escala (Maior, Menor, Menor harmônica, Menor melódica), com armadura de clave; na pauta ou com linhas suplementares; notas cromáticas opcionais.
+  - Rodada fixa (30 notas ou 15 intervalos/acordes) ou contra o relógio (60 s, com recorde salvo no navegador).
+  - Errou, tenta de novo; depois de 3 erros a resposta é marcada. As notas erradas ficam salvas para o botão "Revisar as que errei".
+  - Responde pelo teclado da tela ou por piano MIDI.
+- **`ritmo.html`:** Ritmo e Figuras.
+  - Tocar o ritmo: o metrônomo conta um compasso e você toca no botão, na barra de espaço ou no piano MIDI; mostra cada nota no tempo, quase ou perdida, e se você tende a adiantar ou atrasar.
+  - Ouvir e escolher: ouça o ritmo e escolha entre quatro partituras.
+  - Valores das figuras: quantos tempos vale, qual o nome e qual figura completa o compasso; tabela de figuras e pausas.
+  - Compasso 2/4, 3/4 ou 4/4; três níveis (até semínima, colcheias, semicolcheias e pontuadas); andamento ajustável.
 
 Em breve: treino de ouvido, tocar e conferir (piano via MIDI).
 

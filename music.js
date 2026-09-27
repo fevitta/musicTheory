@@ -26,6 +26,14 @@
     o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(c.destination);
     o1.start(t0); o2.start(t0); o1.stop(t0+dur+0.05); o2.stop(t0+dur+0.05);
   }
+  // Clique de metrônomo (ou toque de ritmo) no instante t do relógio de áudio
+  function click(t,{strong=false,vol=1,freq}={}){
+    const c=ac(); if(!c) return;
+    const o=c.createOscillator(), g=c.createGain(), f=freq||(strong?1760:1175);
+    o.type='triangle'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*0.6,t+0.05);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.35*vol,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.08);
+  }
   function playNotes(ms,{arp=0,dur=1.6,at=0}={}){
     const c=ac(); if(!c) return; const t=c.currentTime+0.03+at; const v=0.22/Math.sqrt(ms.length);
     ms.forEach((m,i)=>tone(m,t+i*arp,dur,v));
@@ -62,5 +70,5 @@
     if(lo<sc.scrollLeft||hi>sc.scrollLeft+cw) sc.scrollTo({left:Math.max(0,hi-lo>cw?lo-8:(lo+hi-cw)/2),behavior:'smooth'});
   }
 
-  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys};
+  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click};
 })();
