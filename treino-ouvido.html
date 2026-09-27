@@ -270,7 +270,6 @@ section{display:flex;flex-direction:column;gap:12px}
     function next(){
       clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
       const k=keyOf(S.prMode,true), degs=[0]; while(degs.length<4){const d=rnd(pool);if(d!==degs[degs.length-1]) degs.push(d);}
-      if(degs.slice(1).every(d=>d===0)) degs[2]=4;
       q={k,degs}; filled=[0]; answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       grid.innerHTML=''; pool.forEach(d=>{const b=h('button',{type:'button',class:'ans'},h('b',{},Sc.roman[d]));b.onclick=()=>pick(d);grid.append(b);});
       draw(); showStats(); play();
@@ -304,7 +303,7 @@ section{display:flex;flex-direction:column;gap:12px}
     const play=()=>playNotes(q.ms,{arp:0.6,dur:0.7});
     function next(){
       clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf,'Todas as melodias sem erro. Aumente o número de notas ou use a oitava inteira.');
-      const k=keyOf(S.diMode,true), t=60+k.pc>71?48+k.pc:60+k.pc, top=S.diRange==='cinco'?4:7;
+      const k=keyOf(S.diMode,true), t=60+k.pc, top=S.diRange==='cinco'?4:7;
       const degs=[0]; for(let i=1;i<S.diLen;i++){let d;do{d=degs[i-1]+rnd([-2,-1,-1,1,1,2,3,-3]);}while(d<0||d>top||d===degs[i-1]);degs.push(d);}
       const ms=degs.map(d=>t+(d===7?12:Sc.iv[d]));
       q={k,t,degs,ms,names:degs.map(d=>d===7?degName(k,1):degName(k,d+1))}; pos=1; errs=0;

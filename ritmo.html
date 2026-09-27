@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="notacao.js"></script>
 <script src="progresso.js"></script>
 <title>Ritmo e Figuras</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -139,48 +140,20 @@ details summary{cursor:pointer;font-weight:600}
   const figsFor=lv=>lv===1?[16,12,8,4]:lv===2?[16,12,8,4,2]:[16,12,8,6,4,3,2,1];
   const restsFor=lv=>lv===1?[16,8,4]:lv===2?[16,8,4,2]:[16,8,4,2,1];
 
-  // Células rítmicas por nível: [duração, pausa?]; todas começam no tempo
-  function cellsFor(lv,rests){
-    const c=[{e:[[4]],w:5},{e:[[8]],w:2},{e:[[12]],w:1},{e:[[16]],w:1,whole:true}];
-    if(rests) c.push({e:[[4,1]],w:1.3},{e:[[8,1]],w:.4});
-    if(lv>=2){c.push({e:[[2],[2]],w:5}); if(rests) c.push({e:[[2,1],[2]],w:1},{e:[[2],[2,1]],w:.5});}
-    if(lv>=3) c.push({e:[[1],[1],[1],[1]],w:2.5},{e:[[2],[1],[1]],w:2},{e:[[1],[1],[2]],w:2},{e:[[3],[1]],w:2},{e:[[6],[2]],w:2});
-    return c.map(x=>({...x,len:x.e.reduce((s,[d])=>s+d,0)}));
-  }
-  function pickCell(cells,room,pos,L){
-    const ok=cells.filter(c=>c.len<=room&&(!c.whole||(pos===0&&L===16)));
-    const tot=ok.reduce((s,c)=>s+c.w,0); let x=Math.random()*tot; return ok.find(c=>(x-=c.w)<0)||ok[0];
-  }
-  // Preenche `len` semicolcheias a partir de `from`, só com células inteiras
-  function fill(len,from=0,{noRestStart=false}={}){
-    const cells=cellsFor(S.level,S.rests), L=S.beats*4, ev=[]; let pos=0;
-    while(pos<len){let c; let tries=0;
-      do{c=pickCell(cells,len-pos,(from+pos)%L,L);}while(noRestStart&&pos===0&&c.e[0][1]&&tries++<20);
-      let p=from+pos; c.e.forEach(([d,r])=>{ev.push({start:p,dur:d,rest:!!r});p+=d;}); pos+=c.len;}
-    return ev;
-  }
+  // Células rítmicas do nível escolhido (notacao.js)
+  const fill=(len,from=0,o)=>Notacao.fill(len,from,S.beats*4,Notacao.cells(S.level,S.rests),o);
   function genRhythm(measures){
     const L=S.beats*4; let ev;
     do{ev=[];for(let m=0;m<measures;m++) ev.push(...fill(L,m*L,{noRestStart:m===0}));}
     while(ev.filter(e=>!e.rest).length<Math.max(2,measures*S.beats/2)||ev.every(e=>e.dur===ev[0].dur&&!e.rest)&&Math.random()<0.7);
     return ev;
   }
-  const sig=ev=>ev.map(e=>e.dur+(e.rest?'r':'')).join(',');
+  // O que se ouve: só os inícios das notas (o som é curto, então mínima e semínima+pausa soam iguais)
+  const heard=ev=>ev.filter(e=>!e.rest).map(e=>e.start).join(',');
 
   // ---------- Desenho ----------
   const LY=52, STEM=30;
-  const headPath=(x,y,hollow)=>{
-    const ell=(rx,ry,rot,n)=>{const c=Math.cos(rot),s=Math.sin(rot);let p='';for(let k=0;k<n;k++){const t=k/n*2*Math.PI,ex=rx*Math.cos(t),ey=ry*Math.sin(t);
-      p+=(k?'L':'M')+(x+ex*c-ey*s).toFixed(2)+' '+(y+ex*s+ey*c).toFixed(2);}return p+'Z';};
-    return ell(6.4,4.4,-0.35,32)+(hollow?ell(4.6,1.9,-0.6,24):'');
-  };
-  const wholePath=(x,y)=>{
-    const ell=(rx,ry,rot,n)=>{const c=Math.cos(rot),s=Math.sin(rot);let p='';for(let k=0;k<n;k++){const t=k/n*2*Math.PI,ex=rx*Math.cos(t),ey=ry*Math.sin(t);
-      p+=(k?'L':'M')+(x+ex*c-ey*s).toFixed(2)+' '+(y+ex*s+ey*c).toFixed(2);}return p+'Z';};
-    return ell(7.2,5,0,36)+ell(2.6,4.3,-0.6,28);
-  };
-  const REST_GLYPH={4:'𝄽',2:'𝄾',1:'𝄿'};
-  const baseDur=d=>[3,6,12].includes(d)?d*2/3:d;
+  const {headPath,wholePath,REST_GLYPH,baseDur}=Notacao;
   // Uma figura isolada (nota com bandeirola ou pausa) centrada em x
   function drawFigure(g,x,y,dur,rest,col,{flag=true}={}){
     const b=baseDur(dur), dotted=b!==dur;
@@ -211,21 +184,13 @@ details summary{cursor:pointer;font-weight:600}
     el(svg,'line',{x1:W-3,x2:W-3,y1:LY-14,y2:LY+14,stroke:'var(--ink)','stroke-width':3.5});
     el(svg,'line',{x1:W-8,x2:W-8,y1:LY-14,y2:LY+14,stroke:'var(--ink)','stroke-width':1.2});
     // Grupos de colcheias/semicolcheias dentro do mesmo tempo
-    const groups=[]; let cur=null;
-    ev.forEach((e,i)=>{const beam=!e.rest&&e.dur<4&&Math.floor(e.start/4)===Math.floor((e.start+e.dur-1)/4);
-      if(beam&&cur&&Math.floor(ev[cur[cur.length-1]].start/4)===Math.floor(e.start/4)&&ev[cur[cur.length-1]].start+ev[cur[cur.length-1]].dur===e.start) cur.push(i);
-      else {cur=beam?[i]:null; if(cur) groups.push(cur);}});
-    const inBeam=new Set(groups.filter(g=>g.length>1).flat());
+    const groups=Notacao.beamGroups(ev), inBeam=new Set(groups.flat());
     ev.forEach((e,i)=>drawFigure(svg,xOf(e.start),LY,e.dur,e.rest,colors&&colors[i]||'var(--ink)',{flag:!inBeam.has(i)}));
-    groups.filter(g=>g.length>1).forEach(g=>{
-      const col=g.every(i=>colors&&colors[i]===colors[g[0]])&&colors?colors[g[0]]:'var(--ink)';
-      const sx=i=>xOf(ev[i].start)+5.7, top=LY-STEM;
-      el(svg,'rect',{x:sx(g[0])-.6,y:top,width:sx(g[g.length-1])-sx(g[0])+1.2,height:4.5,fill:col});
-      g.forEach((i,k)=>{if(baseDur(ev[i].dur)!==1) return;
-        const nxt=g[k+1], prv=g[k-1];
-        if(nxt!==undefined&&baseDur(ev[nxt].dur)===1) el(svg,'rect',{x:sx(i)-.6,y:top+7,width:sx(nxt)-sx(i)+1.2,height:4.5,fill:col});
-        else if(!(prv!==undefined&&baseDur(ev[prv].dur)===1)){const toLeft=nxt===undefined; el(svg,'rect',{x:toLeft?sx(i)-8:sx(i)-.6,y:top+7,width:8.6,height:4.5,fill:col});}
-      });
+    groups.forEach(g=>{
+      const col=colors&&g.every(i=>colors[i]===colors[g[0]])?colors[g[0]]||'var(--ink)':'var(--ink)';
+      const sx=i=>xOf(ev[i].start)+5.7, top=LY-STEM, bar=(x1,x2,y)=>el(svg,'rect',{x:x1-.6,y,width:x2-x1+1.2,height:4.5,fill:col});
+      bar(sx(g[0]),sx(g[g.length-1]),top);
+      Notacao.secondaryBeams(ev,g).forEach(b=>b.hook?bar(b.hook==='left'?sx(b.from)-8:sx(b.from),b.hook==='left'?sx(b.from):sx(b.from)+8,top+7):bar(sx(b.from),sx(b.to),top+7));
     });
     if(gap){const x1=xOf(gap.start)-8, x2=X0+Math.floor(gap.start/L)*MW+MW-6;
       el(svg,'rect',{x:x1,y:LY-24,width:x2-x1,height:34,rx:6,fill:'var(--accent-soft)',stroke:'var(--accent)','stroke-dasharray':'4 3'});
@@ -252,7 +217,7 @@ details summary{cursor:pointer;font-weight:600}
     const end=Math.max(...ev.map(e=>e.start+e.dur));
     if(metro) for(let k=0;k*4<end;k++) click(T+k*b,{strong:k%S.beats===0,vol:.45});
     if(playRhythm) ev.forEach(e=>{if(!e.rest) tone(76,T+e.start*b/4,Math.min(0.5,e.dur*b/4*0.9),0.3);});
-    return {T,end:T+end*b/4,c};
+    return {T,end:T+end*b/4,c,b};
   }
 
   // ---------- Controles ----------
@@ -308,7 +273,7 @@ details summary{cursor:pointer;font-weight:600}
       if(run) return; const sch=schedule(ev,{playRhythm:listen,metro:S.metro||listen,countIn:true}); if(!sch) return;
       run={...sch,listen,taps:[],lat:latency(sch.c)}; bStart.disabled=bHear.disabled=true; draw();
       if(!listen){fb.textContent='';fb.className='feedback';}
-      const b=beatSec(), ph=el(svg,'line',{x1:0,x2:0,y1:LY-38,y2:LY+20,stroke:'var(--accent)','stroke-width':2,opacity:0});
+      const b=sch.b, ph=el(svg,'line',{x1:0,x2:0,y1:LY-38,y2:LY+20,stroke:'var(--accent)','stroke-width':2,opacity:0});
       const {xOf}=drawRhythm(svg,ev,{taps:[],expected:[]}); svg.append(ph);
       const tick=()=>{if(!run) return; const now=run.c.currentTime-run.lat, u=(now-run.T)/(b/4);
         if(now<run.T){countDots(Math.floor((now-(run.T-S.beats*b))/b));}
@@ -326,7 +291,7 @@ details summary{cursor:pointer;font-weight:600}
       run.taps.push(t-run.lat);
     }
     function evaluate(r){
-      const b=beatSec(), toU=t=>(t-r.T)/(b/4);
+      const b=r.b, toU=t=>(t-r.T)/(b/4);
       const notes=ev.map((e,i)=>({i,e})).filter(o=>!o.e.rest), E=notes.map(o=>r.T+o.e.start*b/4);
       let minGap=Infinity; for(let k=1;k<E.length;k++) minGap=Math.min(minGap,E[k]-E[k-1]);
       const win=Math.min(0.16,minGap*0.45), good=Math.max(0.05,win*0.45);
@@ -367,16 +332,17 @@ details summary{cursor:pointer;font-weight:600}
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
       add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok');}
     function variants(base){
-      const L=S.beats*4, out=[base], seen=new Set([sig(base)]);
+      const L=S.beats*4, out=[base], seen=new Set([heard(base)]);
       for(let tries=0;out.length<4&&tries<400;tries++){
         // troca um tempo (ou dois) por outra célula
         const span=Math.random()<0.7?4:8, from=Math.floor(Math.random()*(measures*L/span))*span;
+        if(from%L+span>L) continue; // não atravessa a barra de compasso
         const keep=base.filter(e=>e.start+e.dur<=from||e.start>=from+span);
         if(keep.length+base.filter(e=>e.start>=from&&e.start+e.dur<=from+span).length!==base.length) continue; // célula atravessa o trecho
-        const v=[...keep,...fill(span,from)].sort((a,b)=>a.start-b.start), s=sig(v);
+        const v=[...keep,...fill(span,from)].sort((a,b)=>a.start-b.start), s=heard(v);
         if(!seen.has(s)&&v.some(e=>!e.rest)){seen.add(s);out.push(v);}
       }
-      while(out.length<4){const v=genRhythm(measures),s=sig(v);if(!seen.has(s)){seen.add(s);out.push(v);}}
+      while(out.length<4){const v=genRhythm(measures),s=heard(v);if(!seen.has(s)){seen.add(s);out.push(v);}}
       return out;
     }
     function next(){
@@ -474,9 +440,7 @@ details summary{cursor:pointer;font-weight:600}
   function store(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
   function load(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch(e){return d;}}
   let midiTap=null;
-  if(navigator.requestMIDIAccess){
-    navigator.requestMIDIAccess().then(a=>{const hook=()=>a.inputs.forEach(inp=>{inp.onmidimessage=e=>{const [st,,vel]=e.data;if((st&0xf0)===0x90&&vel>0&&midiTap)midiTap(e);};});hook();a.onstatechange=hook;}).catch(()=>{});
-  }
+  Music.midi((m,e)=>{if(midiTap) midiTap(e);});
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
 
   Progress.track(); controls(); table(); start();

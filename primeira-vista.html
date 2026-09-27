@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="notacao.js"></script>
 <script src="progresso.js"></script>
 <title>Leitura à Primeira Vista</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -139,22 +140,13 @@ section{display:flex;flex-direction:column;gap:12px}
     return {sig,pool,tonicIdx,sigPos:(sharp?C.sharps:C.flats).slice(0,count),sigAcc:sharp?1:-1};
   }
 
-  // ---------- Ritmo (mesmas células da página de ritmo) ----------
-  function cellsFor(lv,rests){
-    const c=[{e:[[4]],w:6},{e:[[8]],w:2},{e:[[12]],w:.8},{e:[[16]],w:.6,whole:true}];
-    if(rests) c.push({e:[[4,1]],w:.8});
-    if(lv>=2){c.push({e:[[2],[2]],w:4}); if(rests) c.push({e:[[2,1],[2]],w:.6});}
-    if(lv>=3) c.push({e:[[1],[1],[1],[1]],w:1.5},{e:[[2],[1],[1]],w:1.5},{e:[[1],[1],[2]],w:1.5},{e:[[3],[1]],w:1.5},{e:[[6],[2]],w:2});
-    return c.map(x=>({...x,len:x.e.reduce((s,[d])=>s+d,0)}));
-  }
+  // ---------- Ritmo (células de notacao.js) ----------
   function genRhythm(){
-    const cells=cellsFor(S.level,S.rests), L=S.beats*4, ev=[];
-    for(let m=0;m<S.bars;m++){let pos=0;
+    const cs=Notacao.cells(S.level,S.rests,{melody:true}), L=S.beats*4, ev=[];
+    for(let m=0;m<S.bars;m++){
       // O último compasso termina com uma nota longa, para soar como final
       const endLen=m===S.bars-1?Math.min(L,S.beats===3?12:8):0;
-      while(pos<L-endLen){const room=L-endLen-pos, ok=cells.filter(c=>c.len<=room&&(!c.whole||(pos===0&&L===16&&!endLen))&&!(m===0&&pos===0&&c.e[0][1]));
-        const tot=ok.reduce((s,c)=>s+c.w,0); let x=Math.random()*tot; const c=ok.find(c=>(x-=c.w)<0)||ok[0];
-        let p=m*L+pos; c.e.forEach(([d,r])=>{ev.push({start:p,dur:d,rest:!!r});p+=d;}); pos+=c.len;}
+      ev.push(...Notacao.fill(L-endLen,m*L,L,cs,{noRestStart:m===0}));
       if(endLen) ev.push({start:m*L+L-endLen,dur:endLen,rest:false});}
     return ev;
   }
@@ -170,12 +162,7 @@ section{display:flex;flex-direction:column;gap:12px}
 
   // ---------- Desenho ----------
   const SP=10, STEP=5, FA_DY=25, ACC_DY={'1':4,'-1':2,'0':4};
-  const ACC_GLYPH={'1':'♯','-1':'♭','0':'♮'}, REST_GLYPH={4:'𝄽',2:'𝄾',1:'𝄿'};
-  const baseDur=d=>[3,6,12].includes(d)?d*2/3:d;
-  const ell=(x,y,rx,ry,rot,n)=>{const c=Math.cos(rot),s=Math.sin(rot);let p='';for(let k=0;k<n;k++){const t=k/n*2*Math.PI,ex=rx*Math.cos(t),ey=ry*Math.sin(t);
-    p+=(k?'L':'M')+(x+ex*c-ey*s).toFixed(2)+' '+(y+ex*s+ey*c).toFixed(2);}return p+'Z';};
-  const headPath=(x,y,hollow)=>ell(x,y,6.4,4.4,-0.35,32)+(hollow?ell(x,y,4.6,1.9,-0.6,24):'');
-  const wholePath=(x,y)=>ell(x,y,7.2,5,0,36)+ell(x,y,2.6,4.3,-0.6,28);
+  const ACC_GLYPH={'1':'♯','-1':'♭','0':'♮'}, {headPath,wholePath,REST_GLYPH,baseDur}=Notacao;
   let G=null; // geometria da partitura atual
   function layout(){
     const L=S.beats*4, U=S.level===3?15:S.level===2?14:13, MW=L*U+22, C=CLEFS[S.clef];
@@ -214,11 +201,7 @@ section{display:flex;flex-direction:column;gap:12px}
         taps.filter(t=>Math.max(0,Math.min(G.lines-1,lineOf(Math.max(0,t.u))))===ln).forEach(t=>el(svg,'circle',{cx:xOf(Math.max(-1.2,t.u)),cy:ty,r:3.6,fill:t.col}));}
     }
     // Grupos de colcheias/semicolcheias dentro do mesmo tempo
-    const groups=[]; let g=null;
-    EV.forEach((e,i)=>{const beam=!e.rest&&e.dur<4&&Math.floor(e.start/4)===Math.floor((e.start+e.dur-1)/4);
-      const p=g&&EV[g[g.length-1]];
-      if(beam&&p&&Math.floor(p.start/4)===Math.floor(e.start/4)&&p.start+p.dur===e.start) g.push(i); else {g=beam?[i]:null; if(g) groups.push(g);}});
-    const beamed=new Map(); groups.filter(x=>x.length>1).forEach(x=>x.forEach(i=>beamed.set(i,x)));
+    const groups=Notacao.beamGroups(EV), beamed=new Map(); groups.forEach(x=>x.forEach(i=>beamed.set(i,x)));
     const col=i=>colors[i]||(i===cur?'var(--accent)':'var(--ink)');
     const r=e=>e.d-C.bottom, Yn=e=>Y0of(lineOf(e.start))-r(e)*STEP;
     const dirOf=grp=>grp.reduce((s,i)=>s+r(EV[i]),0)/grp.length>=4?'down':'up';
@@ -249,14 +232,12 @@ section{display:flex;flex-direction:column;gap:12px}
       }
       if(b!==e.dur) el(svg,'circle',{cx:x+11,cy:rr%2===0?y-2.5:y,r:1.8,fill:c});
     });
-    groups.filter(x=>x.length>1).forEach(grp=>{
+    groups.forEach(grp=>{
       const dir=dirOf(grp), ys=grp.map(j=>Yn(EV[j])), by=dir==='up'?Math.min(...ys)-28:Math.max(...ys)+28;
       const sx=j=>xOf(EV[j].start)+(dir==='up'?5.7:-5.7), c=grp.every(j=>col(j)===col(grp[0]))?col(grp[0]):'var(--ink)';
       const bar=(x1,x2,off)=>el(svg,'rect',{x:x1-.6,y:dir==='up'?by+off:by-4.5-off,width:x2-x1+1.2,height:4.5,fill:c});
       bar(sx(grp[0]),sx(grp[grp.length-1]),0);
-      grp.forEach((j,k)=>{if(baseDur(EV[j].dur)!==1) return; const nx=grp[k+1], pv=grp[k-1];
-        if(nx!==undefined&&baseDur(EV[nx].dur)===1) bar(sx(j),sx(nx),7);
-        else if(!(pv!==undefined&&baseDur(EV[pv].dur)===1)){if(nx===undefined) bar(sx(j)-8,sx(j),7); else bar(sx(j),sx(j)+8,7);}});
+      Notacao.secondaryBeams(EV,grp).forEach(b=>b.hook?bar(b.hook==='left'?sx(b.from)-8:sx(b.from),b.hook==='left'?sx(b.from):sx(b.from)+8,7):bar(sx(b.from),sx(b.to),7));
     });
   }
 
@@ -322,7 +303,7 @@ section{display:flex;flex-direction:column;gap:12px}
     for(let k=0;k<S.beats;k++) click(T-(S.beats-k)*b,{strong:k===0});
     if(S.metro||listenOnly) for(let k=0;k*4<end;k++) click(T+k*b,{strong:k%S.beats===0,vol:.4});
     if(listenOnly) EV.forEach(e=>{if(!e.rest) tone(e.m,T+e.start*b/4,Math.min(1,e.dur*b/4*0.95),0.22);});
-    run={T,end:T+end*b/4,c,lat:c.outputLatency||c.baseLatency||0,listen:listenOnly,presses:[]};
+    run={T,b,end:T+end*b/4,c,lat:c.outputLatency||c.baseLatency||0,listen:listenOnly,presses:[]};
     $('fb').textContent=''; $('fb').className='feedback'; draw({taps:[],expected:[]});
     const ph=el($('score'),'line',{x1:0,x2:0,y1:0,y2:0,stroke:'var(--accent)','stroke-width':2,opacity:0});
     const tick=()=>{if(!run) return; const now=c.currentTime-run.lat, u=(now-run.T)/(b/4);
@@ -334,7 +315,7 @@ section{display:flex;flex-direction:column;gap:12px}
     raf=requestAnimationFrame(tick);
   }
   function evaluate(r){
-    const b=60/S.bpm, idx=noteIdx(), E=idx.map(i=>r.T+EV[i].start*b/4);
+    const b=r.b, idx=noteIdx(), E=idx.map(i=>r.T+EV[i].start*b/4);
     let minGap=Infinity; for(let k=1;k<E.length;k++) minGap=Math.min(minGap,E[k]-E[k-1]);
     const win=Math.min(0.2,minGap*0.45), good=Math.max(0.06,win*0.45);
     const P=r.presses.filter(p=>p.t>r.T-b*0.6&&p.t<r.end+b*0.3), used=new Set(), colors={}, st={ok:0,near:0,wrong:0,miss:0};

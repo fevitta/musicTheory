@@ -158,7 +158,7 @@ p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
   const FILL=['var(--line)','color-mix(in srgb, var(--accent) 22%, var(--surface))','color-mix(in srgb, var(--accent) 45%, var(--surface))','color-mix(in srgb, var(--accent) 70%, var(--surface))','var(--accent)'];
 
   function render(){
-    const d=P.read(), today=P.dayKey(), day=d.days[today], st=P.streak(d), goal=d.goal;
+    const d=P.view(), today=P.dayKey(), day=d.days[today], st=P.streak(d), goal=d.goal;
     // ----- Hoje -----
     const m=P.minutes(day), f=Math.min(1,m/goal), ring=$('ring'); ring.innerHTML='';
     const R=50,C=2*Math.PI*R;
@@ -225,7 +225,7 @@ p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
   // ----- Tabela por exercício -----
   function exTable(d){
     const pb=$('periods'); pb.innerHTML='';
-    [[7,'7 dias'],[30,'30 dias'],[0,'Tudo']].forEach(([v,l])=>{const b=h('button',{type:'button','aria-pressed':String(period===v)},l);b.onclick=()=>{period=v;exTable(P.read());};pb.append(b);});
+    [[7,'7 dias'],[30,'30 dias'],[0,'Tudo']].forEach(([v,l])=>{const b=h('button',{type:'button','aria-pressed':String(period===v)},l);b.onclick=()=>{period=v;exTable(P.view());};pb.append(b);});
     const today=P.dayKey(), from=period?P.addDays(today,-(period-1)):'0000', agg={};
     Object.entries(d.days).forEach(([k,day])=>{if(k<from) return; Object.entries(day.ex||{}).forEach(([e,v])=>{const a=agg[e]||(agg[e]={n:0,ok:0,ms:0,last:k});a.n+=v.n;a.ok+=v.ok;a.ms+=v.ms;if(k>a.last)a.last=k;});});
     const card=$('exCard'); card.innerHTML='';
@@ -263,14 +263,14 @@ p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
   $('export').onclick=()=>{P.exportData();msg('Backup baixado. Guarde o arquivo em um lugar seguro (Drive, iCloud, e-mail).');};
   $('importBtn').onclick=()=>$('importFile').click();
   $('importFile').onchange=async e=>{const f=e.target.files[0]; if(!f) return;
-    try{const n=P.importData(await f.text()); msg('Backup importado ('+n+' itens). O histórico foi somado ao que já estava aqui.'); render(); P.refresh();}
+    try{const n=P.importData(await f.text()); msg('Backup importado ('+n+' itens). O histórico de outro aparelho é somado ao deste; importar o mesmo arquivo de novo não duplica.'); render(); P.refresh();}
     catch(err){msg('Não deu para importar: '+(err.message||'arquivo inválido')+'.');}
     e.target.value='';};
   $('protect').onclick=async()=>{const ok=await P.protect(true); msg(ok?'Pronto: dados protegidos.':'O navegador não autorizou. No iPhone, adicione o site à Tela de Início; em outros, use o site com frequência ou faça backups.'); persistStatus();};
   $('wipe').onclick=()=>{if(!confirm('Apagar todo o progresso, recordes, notas para revisar e configurações deste navegador? Isso não pode ser desfeito. Exporte um backup antes, se quiser guardar.')) return;
     P.clearAll(); render(); P.refresh(); msg('Tudo apagado.');};
 
-  let rw=innerWidth; addEventListener('resize',()=>{if(innerWidth!==rw){rw=innerWidth;calendar(P.read());bars(P.read());}});
+  let rw=innerWidth; addEventListener('resize',()=>{if(innerWidth!==rw){rw=innerWidth;calendar(P.view());bars(P.view());}});
   render(); persistStatus();
 })();
 </script>

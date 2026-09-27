@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
 <script src="music.js"></script>
+<script src="notacao.js"></script>
 <script src="progresso.js"></script>
 <title>Leitura de Partitura</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -156,7 +157,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
 
 <script>
 (function(){
-  const {LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes}=Music;
+  const {LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,keyboard,midi}=Music;
   const EXS={
     nota:{name:'Nota no teclado',hint:'Leia a nota na pauta e toque no teclado.',total:30,unit:'Nota',input:'keys'},
     nomear:{name:'Nomear a nota',hint:'Leia a nota e escolha o nome. O acidente vem da armadura ou do sinal ao lado da nota. No computador, as teclas C D E F G A B também respondem.',total:30,unit:'Nota',input:'names'},
@@ -259,8 +260,9 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   const mkItem=notes=>({notes,clef:notes[0].clef,tries:0,done:false,got:new Set()});
   function genItem(prev){
     const c=rnd(clefsOn()), P=K.pools[c];
-    if(R.review){const W=weakList(), tot=W.reduce((s,w)=>s+w.c,0);let n;
-      do{let x=Math.random()*tot;n=W.find(w=>(x-=w.c)<0).n;}while(W.length>1&&prev&&weakKey(n)===weakKey(prev.notes[0]));
+    const W=R.review?weakList():[]; // na revisão; se todas já foram acertadas, segue com notas sorteadas
+    if(W.length){const tot=W.reduce((s,w)=>s+w.c,0);let n;
+      do{let x=Math.random()*tot;n=(W.find(w=>(x-=w.c)<0)||W[0]).n;}while(W.length>1&&prev&&weakKey(n)===weakKey(prev.notes[0]));
       return mkItem([n]);}
     if(S.ex==='intervalo'){for(;;){const i=Math.floor(Math.random()*P.length), n=rnd([2,3,3,4,4,5,5,6,6,7,8]), j=i+n-1;
       if(j<P.length) return mkItem([P[i],P[j]]);}}
@@ -474,12 +476,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
       el(svg,'path',{d:wholeNote(x+(o.shift?13:0),y),fill:o.col,'fill-rule':'evenodd'});
     });
   }
-  // Semibreve: elipse externa com furo inclinado
-  function wholeNote(x,y){
-    const ell=(rx,ry,rot,n)=>{const c=Math.cos(rot),s=Math.sin(rot);let p='';for(let k=0;k<n;k++){const t=k/n*2*Math.PI,ex=rx*Math.cos(t),ey=ry*Math.sin(t);
-      p+=(k?'L':'M')+(x+ex*c-ey*s).toFixed(2)+' '+(y+ex*s+ey*c).toFixed(2);}return p+'Z';};
-    return ell(7.2,5,0,36)+ell(2.6,4.3,-0.6,28);
-  }
+  const wholeNote=Notacao.wholePath;
   // Toque/clique na pauta → posição diatônica (arraste para ajustar, solte para responder)
   function staffPos(e){
     const svg=$('staff'), pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
@@ -499,33 +496,15 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
     const g=staffPos(e); if(e.pointerType!=='mouse') R.ghost=null; onStaff(g.d);});
   $('staff').addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&R&&R.ghost&&!dragging){R.ghost=null;drawStaff();}});
 
-  // ---------- Teclado ----------
-  let flash=null;
-  function flashKey(m,color){flash={m,color,t:Date.now()}; setTimeout(()=>{if(flash&&Date.now()-flash.t>=380){flash=null;drawPiano();}},400);}
+  // ---------- Teclado (music.js) ----------
+  const kb=keyboard($('piano'),m=>onKey(m));
+  const flashKey=(m,color)=>kb.flash(m,color);
   function drawPiano(){
-    const svg=$('piano'); if($('pianoWrap').hidden) return; svg.innerHTML='';
-    const ms=Object.values(K.pools).flat().map(n=>n.m); let lo=Math.min(...ms)-(S.chrom?1:0), hi=Math.max(...ms)+(S.chrom?1:0);
-    // Estende até o limite do grupo de teclas pretas (Dó ou Fá embaixo, Mi ou Si em cima)
-    while(![0,5].includes(lo%12)) lo--; while(![4,11].includes(hi%12)) hi++;
-    const WW=36,WH=150,BW=22,BH=94;
-    const whites=[],blacks=[]; let x=1;
-    for(let m=lo;m<=hi;m++){ if(BLACK.has(m%12)) blacks.push({m,x:x-BW/2}); else {whites.push({m,x}); x+=WW;} }
-    svg.setAttribute('viewBox',`0 0 ${x+1} ${WH+2}`);
-    svg.style.minWidth=Math.round(whites.length*24)+'px';
-    const it=active()?cur():null;
-    const gotM=new Set(it?[...it.got].map(k=>it.notes[k].m):[]);
-    const fillOf=(m,base)=>flash&&flash.m===m?flash.color:gotM.has(m)?'var(--t)':base;
-    const mark=m=>R.revealed&&it&&it.notes.some((n,k)=>!it.got.has(k)&&n.m===m);
-    const mono='IBM Plex Mono, monospace';
-    const key=(k,attrs)=>{const r=el(svg,'rect',attrs);r.classList.add('k');r.dataset.m=k.m;
-      r.addEventListener('pointerdown',e=>{e.preventDefault();onKey(k.m);});return r;};
-    whites.forEach(k=>{
-      key(k,{x:k.x,y:1,width:WW-1,height:WH,rx:5,fill:fillOf(k.m,'var(--kw)'),stroke:mark(k.m)?'var(--accent)':'var(--kw-edge)','stroke-width':mark(k.m)?4:1});
-      const pc=k.m%12, li=NAT.indexOf(pc);
-      if(S.names) el(svg,'text',{x:k.x+(WW-1)/2,y:WH-12,'text-anchor':'middle','font-size':11,'font-family':mono,fill:'var(--muted)','pointer-events':'none'},SOL[LET[li]]);
-      if(pc===0) el(svg,'text',{x:k.x+(WW-1)/2,y:WH-(S.names?28:12),'text-anchor':'middle','font-size':10,'font-family':mono,fill:'var(--muted)','pointer-events':'none'},'C'+(Math.floor(k.m/12)-1));
-    });
-    blacks.forEach(k=>key(k,{x:k.x,y:0,width:BW,height:BH,rx:3,fill:fillOf(k.m,'var(--kb)'),stroke:mark(k.m)?'var(--accent)':'var(--kb)','stroke-width':mark(k.m)?4:1}));
+    if($('pianoWrap').hidden) return;
+    const ms=Object.values(K.pools).flat().map(n=>n.m), it=active()?cur():null, pad=S.chrom?1:0;
+    const fills=new Map(it?[...it.got].map(k=>[it.notes[k].m,'var(--t)']):[]);
+    const marks=new Set(R.revealed&&it?it.notes.filter((n,k)=>!it.got.has(k)).map(n=>n.m):[]);
+    kb.set({lo:Math.min(...ms)-pad,hi:Math.max(...ms)+pad,names:S.names,fills,marks});
   }
 
   // ---------- Controles ----------
@@ -569,13 +548,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   });
 
   // Piano digital via MIDI
-  if(navigator.requestMIDIAccess){
-    navigator.requestMIDIAccess().then(acc=>{
-      const hook=()=>{let n=0;acc.inputs.forEach(inp=>{n++;inp.onmidimessage=e=>{const [st,note,vel]=e.data;if((st&0xf0)===0x90&&vel>0)onKey(note);};});
-        if(n) $('midiInfo').textContent='Piano MIDI conectado.';};
-      hook(); acc.onstatechange=hook;
-    }).catch(()=>{});
-  }
+  midi(m=>onKey(m),n=>{if(n) $('midiInfo').textContent='Piano MIDI conectado.';});
 
   // iOS só libera o áudio em touchend/click: acorda o contexto de som no primeiro toque
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});

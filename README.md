@@ -50,7 +50,8 @@ Em breve: tocar e conferir (escalas e acordes pelo piano via MIDI).
 
 - **`style.css`:** cores (claro/escuro), tipografia e controles comuns (chips, botões, etiquetas de função). Toda página nova deve incluí-lo.
 - **`music.js`:** nomes e grafia de notas, áudio (Web Audio, com clique de metrônomo), teclado em SVG (simples e tocável) e piano MIDI, expostos em `window.Music`.
-- **`progresso.js`:** registro do progresso em `localStorage` (chave `tp-progresso`, um resumo por dia). Páginas de treino chamam `Progress.track()` uma vez e `Progress.log('pagina:exercicio', acertou)` a cada resposta; toda página com `.top-bar` mostra o resumo do dia.
+- **`notacao.js`:** notação e ritmo compartilhados por Leitura, Ritmo e Primeira Vista: desenho das figuras em SVG, células rítmicas por nível e grupos de hastes unidas, expostos em `window.Notacao`.
+- **`progresso.js`:** registro do progresso em `localStorage` (chave `tp-progresso`, um resumo por dia; o histórico importado de outros aparelhos fica separado por aparelho e é somado na exibição). Páginas de treino chamam `Progress.track()` uma vez e `Progress.log('pagina:exercicio', acertou)` a cada resposta; toda página com `.top-bar` mostra o resumo do dia.
 - **`theme.js`:** seletor de tema Auto/Claro/Escuro. Inclua no `<head>` (sem `defer`) e coloque `<div class="seg theme" id="theme"></div>` onde o seletor deve aparecer.
 
 O som é gerado no navegador (Web Audio API). No iPhone/iPad, desative o modo silencioso para ouvir.
