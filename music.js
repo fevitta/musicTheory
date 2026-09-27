@@ -70,5 +70,37 @@
     if(lo<sc.scrollLeft||hi>sc.scrollLeft+cw) sc.scrollTo({left:Math.max(0,hi-lo>cw?lo-8:(lo+hi-cw)/2),behavior:'smooth'});
   }
 
-  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click};
+  // ---------- Teclado interativo ----------
+  // Tocável (pointerdown chama onPress). set({lo,hi,names,fills,marks}) redesenha:
+  // fills = Map(m → cor de preenchimento), marks = Set(m) com contorno de destaque.
+  function keyboard(svg,onPress){
+    const NS='http://www.w3.org/2000/svg', st={lo:48,hi:71,names:false,fills:new Map(),marks:new Set()}; let fl=null;
+    const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;svg.appendChild(e);return e;};
+    function draw(){
+      svg.innerHTML=''; let lo=st.lo, hi=st.hi;
+      while(![0,5].includes(lo%12)) lo--; while(![4,11].includes(hi%12)) hi++;
+      const WW=36,WH=150,BW=22,BH=94, whites=[], blacks=[]; let x=1;
+      for(let m=lo;m<=hi;m++){ if(BLACK.has(m%12)) blacks.push({m,x:x-BW/2}); else {whites.push({m,x}); x+=WW;} }
+      svg.setAttribute('viewBox',`0 0 ${x+1} ${WH+2}`); svg.style.minWidth=Math.round(whites.length*24)+'px';
+      const fill=(m,base)=>fl&&fl.m===m?fl.color:st.fills.get(m)||base, mono='IBM Plex Mono, monospace';
+      const key=(k,attrs)=>{const r=el('rect',attrs);r.style.cursor='pointer';r.dataset.m=k.m;r.addEventListener('pointerdown',e=>{e.preventDefault();onPress(k.m,e);});};
+      whites.forEach(k=>{const mk=st.marks.has(k.m);
+        key(k,{x:k.x,y:1,width:WW-1,height:WH,rx:5,fill:fill(k.m,'var(--kw)'),stroke:mk?'var(--accent)':'var(--kw-edge)','stroke-width':mk?4:1});
+        const pc=k.m%12;
+        if(st.names) el('text',{x:k.x+(WW-1)/2,y:WH-12,'text-anchor':'middle','font-size':11,'font-family':mono,fill:'var(--muted)','pointer-events':'none'},SOL[LET[NAT.indexOf(pc)]]);
+        if(pc===0) el('text',{x:k.x+(WW-1)/2,y:WH-(st.names?28:12),'text-anchor':'middle','font-size':10,'font-family':mono,fill:'var(--muted)','pointer-events':'none'},'C'+(Math.floor(k.m/12)-1));});
+      blacks.forEach(k=>{const mk=st.marks.has(k.m);key(k,{x:k.x,y:0,width:BW,height:BH,rx:3,fill:fill(k.m,'var(--kb)'),stroke:mk?'var(--accent)':'var(--kb)','stroke-width':mk?4:1});});
+    }
+    return {draw,
+      set(o){Object.assign(st,o);draw();},
+      flash(m,color){fl={m,color,t:Date.now()};draw();setTimeout(()=>{if(fl&&Date.now()-fl.t>=330){fl=null;draw();}},350);}};
+  }
+  // Piano digital (Web MIDI): chama onNote(nota, evento) a cada tecla apertada; onStatus(n) com o nº de entradas
+  function midi(onNote,onStatus){
+    if(!navigator.requestMIDIAccess) return;
+    navigator.requestMIDIAccess().then(a=>{const hook=()=>{let n=0;a.inputs.forEach(inp=>{n++;inp.onmidimessage=e=>{const [st,note,vel]=e.data;if((st&0xf0)===0x90&&vel>0)onNote(note,e);};});if(onStatus)onStatus(n);};
+      hook();a.onstatechange=hook;}).catch(()=>{});
+  }
+
+  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click,keyboard,midi};
 })();

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Treino de ouvido: reconheça intervalos, tipos de acorde, graus da escala e progressões, e faça ditado melódico no teclado.">
+<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10121A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teoria no Piano">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<script src="music.js"></script>
+<title>Treino de Ouvido</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+section{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ctls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 24px}
+.ctl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.chip{font-family:var(--sans)}
+.chip.mono{font-family:var(--mono)}
+.toggle{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.toggle::before{content:"";width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);box-sizing:border-box}
+.toggle[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.toggle[aria-pressed="true"]::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--surface)}
+.link{border:0;background:none;color:var(--accent);font-size:13px;font-weight:600;padding:4px 2px}
+.link:hover{text-decoration:underline}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
+.stat{display:flex;flex-direction:column}
+.stat b{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1.2}
+.stat.ok b{color:var(--t)}
+.key{font-family:var(--display);font-weight:700;font-size:26px}
+.answers{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.ans{border:1px solid var(--line);background:var(--bg);border-radius:12px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+.ans:hover{border-color:var(--accent)}
+.ans b{font-size:17px;font-weight:600}
+.ans small{font-size:12px;color:var(--muted);text-align:center}
+.ans.good{border-color:var(--t);background:var(--t-soft);box-shadow:0 0 0 2px var(--t) inset}
+.ans.good small,.ans.good b{color:var(--t)}
+.ans.bad{border-color:var(--d);background:var(--d-soft);box-shadow:0 0 0 2px var(--d) inset}
+.ans.bad small,.ans.bad b{color:var(--d)}
+.feedback{min-height:1.6em;font-size:15px;font-weight:600;margin:0}
+.feedback.ok{color:var(--t)} .feedback.err{color:var(--d)}
+.slots{display:flex;flex-wrap:wrap;gap:8px}
+.slot{min-width:64px;height:56px;border:2px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:22px;padding:0 10px}
+.slot.fill{border-style:solid;border-color:var(--accent);color:var(--accent)}
+.slot.cur{border-color:var(--accent)}
+.slot.good{border-style:solid;border-color:var(--t);color:var(--t);background:var(--t-soft)}
+.slot.bad{border-style:solid;border-color:var(--d);color:var(--d);background:var(--d-soft)}
+.slot small{font-family:var(--sans);font-size:12px;font-weight:600;margin-left:6px}
+.kbd-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+.kbd{display:block;width:100%;height:auto;max-height:200px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(44px,8vw,64px);line-height:1}
+.big small{font-size:.45em;color:var(--muted);font-weight:500}
+.missed{display:flex;flex-wrap:wrap;gap:6px}
+.missed span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--d-soft);color:var(--d)}
+@media (max-width:420px){ .answers{grid-template-columns:repeat(2,minmax(0,1fr))} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top-bar">
+      <a class="eyebrow" href="index.html">← Teoria musical no piano</a>
+      <div class="seg theme" id="theme" role="group" aria-label="Tema"></div>
+    </div>
+    <h1>Treino de Ouvido</h1>
+    <p class="lede">Ouça e responda: que intervalo é esse, que acorde, que grau da escala, que progressão. No ditado, você toca de volta a melodia que ouviu. Cada rodada tem 10 perguntas.</p>
+  </header>
+
+  <section>
+    <div class="card">
+      <div class="ctl"><span class="lbl">Exercício</span><div class="row" id="exs" role="group" aria-label="Exercício"></div><span class="hint" id="exHint"></span></div>
+      <div class="ctls" id="exOpts"></div>
+    </div>
+  </section>
+
+  <section id="main"></section>
+  <p class="hint">O som é gerado no navegador. No iPhone/iPad, desative o modo silencioso para ouvir.</p>
+</div>
+
+<script>
+(function(){
+  const {LET,NAT,SOL,acc,parse,niceT,spellAt,playNotes,keyboard,midi}=Music;
+  const $=id=>document.getElementById(id);
+  function h(tag,attrs={},...kids){const e=document.createElement(tag);for(const k in attrs){if(k==='on')for(const ev in attrs.on)e.addEventListener(ev,attrs.on[ev]);else if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k]);}
+    kids.flat().forEach(c=>c!=null&&e.append(c));return e;}
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const TOTAL=10;
+
+  const EXS={
+    intervalos:{name:'Intervalos',hint:'Duas notas: diga a distância entre elas. Depois de responder, toque nas opções para comparar.'},
+    acordes:{name:'Acordes',hint:'Um acorde: diga o tipo (maior, menor, diminuto…). Depois de responder, toque nas opções para comparar.'},
+    graus:{name:'Graus da escala',hint:'A cadência define o tom; depois toca uma nota. Diga qual grau ela é. A nota resolve na tônica para você fixar.'},
+    progressoes:{name:'Progressões',hint:'Quatro acordes no tom. O primeiro é sempre o I: descubra os outros três.'},
+    ditado:{name:'Ditado melódico',hint:'Ouça a melodia e toque de volta no teclado. A primeira nota é a tônica. Vale qualquer oitava.'}
+  };
+  const IVS=[[1,'2m','Segunda menor'],[2,'2M','Segunda maior'],[3,'3m','Terça menor'],[4,'3M','Terça maior'],[5,'4J','Quarta justa'],[6,'Trítono','4ª aum. / 5ª dim.'],
+    [7,'5J','Quinta justa'],[8,'6m','Sexta menor'],[9,'6M','Sexta maior'],[10,'7m','Sétima menor'],[11,'7M','Sétima maior'],[12,'8J','Oitava']];
+  const CHS=[['M','Maior','C',[0,4,7]],['m','Menor','Cm',[0,3,7]],['dim','Diminuto','C°',[0,3,6]],['aug','Aumentado','C+',[0,4,8]],
+    ['7M','Maior com 7ª maior','C7M',[0,4,7,11]],['7','Dominante','C7',[0,4,7,10]],['m7','Menor com 7ª','Cm7',[0,3,7,10]],['m7b5','Meio-diminuto','Cm7(♭5)',[0,3,6,10]],['dim7','Diminuto com 7ª','C°7',[0,3,6,9]]]
+    .map(([k,name,sym,iv])=>({k,name,sym,iv}));
+  const SCALES={maior:{name:'maior',iv:[0,2,4,5,7,9,11],tonics:['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'],
+      roman:['I','ii','iii','IV','V','vi','vii°'],roots:[0,2,4,5,7,9,11],quals:[[0,4,7],[0,3,7],[0,3,7],[0,4,7],[0,4,7],[0,3,7],[0,3,6]]},
+    menor:{name:'menor',iv:[0,2,3,5,7,8,10],tonics:['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B'],
+      roman:['i','ii°','III','iv','V','VI','vii°'],roots:[0,2,3,5,7,8,11],quals:[[0,3,7],[0,3,6],[0,4,7],[0,3,7],[0,4,7],[0,4,7],[0,3,6]]}};
+  const PR_POOLS={basico:['I, IV e V',[0,3,4]],vi:['+ vi',[0,3,4,5]],todos:['Todos os graus',[0,1,2,3,4,5,6]]};
+
+  const S={ex:'intervalos',ivDir:'sobe',ivs:[3,4,5,7,12],chDir:'bloco',chs:['M','m'],inv:false,
+    grMode:'maior',grs:[1,2,3,4,5,6,7],randKey:false,cad:true,resolve:true,prMode:'maior',prPool:'basico',diMode:'maior',diLen:4,diRange:'cinco'};
+  try{Object.assign(S,JSON.parse(localStorage.getItem('ouvido-cfg')||'{}'));}catch(e){}
+  if(!EXS[S.ex]) S.ex='intervalos';
+  const save=()=>{try{localStorage.setItem('ouvido-cfg',JSON.stringify(S));}catch(e){}};
+
+  // ---------- Controles ----------
+  function seg(items,key,after){const box=h('div',{class:'seg',role:'group'});
+    items.forEach(([v,label])=>{const b=h('button',{type:'button','aria-pressed':String(S[key]===v)},label);
+      b.onclick=()=>{S[key]=v;save();if(after)after();controls();start();};box.append(b);});return box;}
+  // Várias escolhas (mínimo 2, ou 1 para `min`)
+  function multi(items,key,{min=2,mono=false}={}){const box=h('div',{class:'row',role:'group'});
+    items.forEach(([v,label,title])=>{const on=S[key].includes(v),b=h('button',{type:'button',class:'chip'+(mono?' mono':''),'aria-pressed':String(on)},label);if(title)b.title=title;
+      b.onclick=()=>{const set=new Set(S[key]);if(set.has(v)){if(set.size<=min) return;set.delete(v);}else set.add(v);
+        S[key]=items.map(i=>i[0]).filter(x=>set.has(x));save();controls();start();};box.append(b);});return box;}
+  function preset(label,key,vals){return h('button',{type:'button',class:'link',on:{click:()=>{S[key]=vals;save();controls();start();}}},label);}
+  function toggle(label,key,restart){const b=h('button',{type:'button',class:'toggle','aria-pressed':String(!!S[key])},label);
+    b.onclick=()=>{S[key]=!S[key];save();b.setAttribute('aria-pressed',String(S[key]));if(restart)start();};return b;}
+  const ctl=(label,...kids)=>h('div',{class:'ctl'},h('span',{class:'lbl'},label),...kids);
+  function controls(){
+    const ex=$('exs'); ex.innerHTML='';
+    Object.entries(EXS).forEach(([k,e])=>{const b=h('button',{type:'button',class:'chip','aria-pressed':String(S.ex===k)},e.name);b.onclick=()=>{S.ex=k;save();controls();start();};ex.append(b);});
+    $('exHint').textContent=EXS[S.ex].hint;
+    const o=$('exOpts'); o.innerHTML='';
+    if(S.ex==='intervalos'){
+      o.append(ctl('Como tocar',seg([['sobe','Subindo'],['desce','Descendo'],['junto','Juntas'],['mix','Misturado']],'ivDir')),
+        ctl('Intervalos',multi(IVS.map(([s,k,n])=>[s,k,n]),'ivs',{mono:true}),h('div',{class:'row'},preset('Básicos','ivs',[3,4,5,7,12]),preset('Terças e sextas','ivs',[3,4,8,9]),preset('Todos','ivs',IVS.map(i=>i[0])))));
+    } else if(S.ex==='acordes'){
+      o.append(ctl('Como tocar',seg([['bloco','Bloco'],['arpejo','Arpejo'],['mix','Misturado']],'chDir'),h('div',{class:'row'},toggle('Inversões','inv',true))),
+        ctl('Tipos',multi(CHS.map(c=>[c.k,c.name]),'chs'),h('div',{class:'row'},preset('Maior e menor','chs',['M','m']),preset('Tríades','chs',['M','m','dim','aug']),preset('Tétrades','chs',['7M','7','m7','m7b5','dim7']))));
+    } else if(S.ex==='graus'){
+      o.append(ctl('Escala',seg([['maior','Maior'],['menor','Menor']],'grMode'),h('div',{class:'row'},toggle('Tom aleatório','randKey',true),toggle('Cadência a cada nota','cad'),toggle('Resolver na tônica','resolve'))),
+        ctl('Graus',multi([1,2,3,4,5,6,7].map(g=>[g,String(g)]),'grs',{mono:true}),h('div',{class:'row'},preset('1, 3 e 5','grs',[1,3,5]),preset('1 a 5','grs',[1,2,3,4,5]),preset('Todos','grs',[1,2,3,4,5,6,7]))));
+    } else if(S.ex==='progressoes'){
+      o.append(ctl('Escala',seg([['maior','Maior'],['menor','Menor']],'prMode')),
+        ctl('Acordes possíveis',seg(Object.entries(PR_POOLS).map(([k,p])=>[k,p[0]]),'prPool')));
+    } else {
+      o.append(ctl('Escala',seg([['maior','Maior'],['menor','Menor']],'diMode')),
+        ctl('Notas',seg([[3,'3'],[4,'4'],[5,'5'],[6,'6']],'diLen')),
+        ctl('Extensão',seg([['cinco','5 notas (1 a 5)'],['oitava','Uma oitava']],'diRange')));
+    }
+  }
+
+  // ---------- Tom e cadência ----------
+  const keyOf=(mode,rand)=>{const T=SCALES[mode].tonics, t=rand?rnd(T):'C', pc=parse(t).pc;
+    return {name:t,mode,pc,t:55+((pc-7+12)%12),label:niceT(t)+' '+SCALES[mode].name};};  // tônica entre Sol3 e Fá♯4
+  function cadence(k,at=0){
+    const t=k.t, m=k.mode==='menor'?3:4, mi=k.mode==='menor'?8:9;
+    [[t-12,t,t+m,t+7],[t-7,t,t+5,t+mi],[t-5,t-1,t+2,t+7],[t-12,t,t+m,t+7]].forEach((c,i)=>playNotes(c,{dur:0.75,at:at+i*0.62}));
+    return at+4*0.62+0.35;
+  }
+  const degName=(k,deg)=>{const {li,pc}=parse(k.name), iv=SCALES[k.mode].iv[deg-1], n=spellAt(li+deg-1,(pc+iv)%12);return n.sol;};
+
+  // ---------- Quiz genérico (intervalos, acordes, graus) ----------
+  let stop=()=>{};
+  function Quiz(root,make,{extra}={}){
+    let n=0,right=0,q=null,answered=false,timer=0; const conf=new Map();
+    const stats=h('div',{class:'stats'}), fb=h('p',{class:'feedback','aria-live':'polite'}), grid=h('div',{class:'answers'}), top=h('div',{class:'row'});
+    const bNext=h('button',{class:'btn',type:'button'},'Próxima');
+    const card=h('div',{class:'card'},stats,top,grid,fb,h('div',{class:'row'},bNext)); root.append(card);
+    function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
+      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); if(q&&q.keyLabel) stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.keyLabel)));}
+    function next(){
+      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
+      q=make(n); answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
+      top.innerHTML=''; top.append(h('button',{class:'btn primary',type:'button',on:{click:()=>q.play(false)}},'Ouvir de novo'));
+      if(q.cadence) top.append(h('button',{class:'btn',type:'button',on:{click:()=>q.cadence()}},'Ouvir o tom'));
+      grid.innerHTML='';
+      q.options.forEach(o=>{const b=h('button',{type:'button',class:'ans'},h('b',{},o.label),o.sub?h('small',{},o.sub):null);
+        b.onclick=()=>{if(answered){q.compare&&q.compare(o.key);return;} choose(o,b);}; grid.append(b);});
+      showStats(); q.play(true);
+    }
+    function choose(o,b){
+      answered=true; const ok=o.key===q.answer; n++; if(ok) right++; else {const k=q.labelOf(q.answer)+' → '+q.labelOf(o.key);conf.set(k,(conf.get(k)||0)+1);}
+      [...grid.children].forEach((c,i)=>{if(q.options[i].key===q.answer) c.classList.add('good');}); if(!ok) b.classList.add('bad');
+      fb.className='feedback '+(ok?'ok':'err'); fb.textContent=(ok?'Certo! ':'Era '+q.labelOf(q.answer)+'. ')+(q.explain||'')+(q.compare?' Toque nas opções para comparar.':'');
+      if(q.after) q.after();
+      bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats();
+      if(ok) timer=setTimeout(next,q.after?2600:1300);
+    }
+    bNext.onclick=next; stop=()=>clearTimeout(timer); next();
+  }
+  function summary(card,right,conf,msg){
+    card.innerHTML='';
+    const miss=h('div',{class:'missed'}); [...conf].sort((a,b)=>b[1]-a[1]).forEach(([k,c])=>miss.append(h('span',{},k+(c>1?' ×'+c:''))));
+    card.append(h('span',{class:'lbl'},'Resultado'),h('div',{class:'big'},String(right),h('small',{},' / '+TOTAL)),
+      conf.size?h('div',{class:'ctl'},h('span',{class:'lbl'},'Confusões (certo → sua resposta)'),miss):h('p',{class:'hint',style:'margin:0'},msg||'Nenhum erro. Acrescente opções para aumentar a dificuldade.'),
+      h('div',{class:'row'},h('button',{class:'btn primary',type:'button',on:{click:start}},'Treinar de novo')));
+  }
+
+  // ---------- Exercícios ----------
+  function Intervalos(root){
+    Quiz(root,()=>{
+      const s=rnd(S.ivs), base=rint(52,79-s), dir=S.ivDir==='mix'?rnd(['sobe','desce','junto']):S.ivDir;
+      const notes=iv=>dir==='desce'?[base+iv,base]:[base,base+iv];
+      const play=iv=>dir==='junto'?playNotes(notes(iv),{dur:1.6}):playNotes(notes(iv),{arp:0.7,dur:1.3});
+      const lab=k=>IVS.find(i=>i[0]===k)[2];
+      return {answer:s,options:S.ivs.map(k=>({key:k,label:IVS.find(i=>i[0]===k)[1],sub:lab(k)})),labelOf:lab,
+        play:()=>play(s),compare:k=>play(k),explain:dir==='junto'?'':'('+(dir==='sobe'?'subindo':'descendo')+')'};
+    });
+  }
+  function Acordes(root){
+    Quiz(root,()=>{
+      const pick=rnd(S.chs), c=CHS.find(x=>x.k===pick), root_=rint(48,58), inv=S.inv?rint(0,c.iv.length-1):0, arp=S.chDir==='arpejo'||(S.chDir==='mix'&&Math.random()<0.5);
+      const voice=ch=>{const ms=ch.iv.map(x=>root_+x);for(let k=0;k<Math.min(inv,ms.length-1);k++) ms.push(ms.shift()+12);return ms;};
+      const play=ch=>arp?playNotes(voice(ch),{arp:0.35,dur:1.8}):playNotes(voice(ch),{dur:1.8});
+      const lab=k=>CHS.find(x=>x.k===k).name;
+      return {answer:c.k,options:S.chs.map(k=>{const x=CHS.find(y=>y.k===k);return {key:k,label:x.name,sub:'ex.: '+x.sym};}),labelOf:lab,
+        play:()=>play(c),compare:k=>play(CHS.find(x=>x.k===k)),explain:inv?'('+inv+'ª inversão)':''};
+    });
+  }
+  function Graus(root){
+    let k=keyOf(S.grMode,S.randKey);
+    Quiz(root,(i)=>{
+      const deg=rnd(S.grs), iv=SCALES[k.mode].iv, m=k.t+iv[deg-1];
+      const resolution=()=>{const steps=deg<=4?[...Array(deg).keys()].reverse().map(j=>k.t+iv[j]):[...Array(9-deg).keys()].map(j=>deg-1+j>=7?k.t+12:k.t+iv[deg-1+j]);return steps;};
+      return {answer:deg,keyLabel:k.label,labelOf:g=>g+' ('+degName(k,g)+')',
+        options:S.grs.map(g=>({key:g,label:String(g),sub:degName(k,g)})),
+        play:first=>{const at=first&&(S.cad||i===0)?cadence(k)+0.25:0; playNotes([m],{dur:1.4,at});},
+        cadence:()=>cadence(k),
+        after:S.resolve?()=>{playNotes(resolution(),{arp:0.42,dur:0.8,at:0.15});}:null,
+        explain:S.resolve&&deg!==1?'Ouça ela resolver na tônica.':''};
+    });
+  }
+
+  // ---------- Progressões ----------
+  function voiceLead(prev,pcs){
+    let best=null;
+    for(let inv=0;inv<3;inv++) for(let base=52;base<=64;base++){
+      const ms=[];let p=base; const ord=[...pcs.slice(inv),...pcs.slice(0,inv)];
+      if(p%12!==ord[0]) continue; ms.push(p); for(let j=1;j<3;j++){let n=ms[j-1]+1;while(n%12!==ord[j])n++;ms.push(n);}
+      if(ms[2]>76) continue;
+      const cost=prev?ms.reduce((s,x,j)=>s+Math.abs(x-prev[j]),0):Math.abs(ms[0]-60);
+      if(!best||cost<best.cost) best={ms,cost};
+    }
+    return best.ms;
+  }
+  function Progressoes(root){
+    let n=0,right=0,q=null,filled=[],answered=false,timer=0; const conf=new Map();
+    const Sc=SCALES[S.prMode], pool=PR_POOLS[S.prPool][1];
+    const stats=h('div',{class:'stats'}), slots=h('div',{class:'slots'}), grid=h('div',{class:'answers'}), fb=h('p',{class:'feedback','aria-live':'polite'});
+    const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir de novo'), bUndo=h('button',{class:'btn',type:'button'},'Apagar'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
+    const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,bUndo),slots,grid,fb,h('div',{class:'row'},bNext)); root.append(card);
+    function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
+      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
+    function play(){let prev=null;q.degs.forEach((d,i)=>{const pcs=Sc.quals[d].map(x=>(q.k.t+Sc.roots[d]+x)%12), up=voiceLead(prev,pcs);prev=up;
+      let bass=q.k.t+Sc.roots[d]-12; while(bass>50) bass-=12; while(bass<40) bass+=12;
+      playNotes([bass,...up],{dur:1.05,at:i*1.1});});}
+    function next(){
+      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
+      const k=keyOf(S.prMode,true), degs=[0]; while(degs.length<4){const d=rnd(pool);if(d!==degs[degs.length-1]) degs.push(d);}
+      if(degs.slice(1).every(d=>d===0)) degs[2]=4;
+      q={k,degs}; filled=[0]; answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
+      grid.innerHTML=''; pool.forEach(d=>{const b=h('button',{type:'button',class:'ans'},h('b',{},Sc.roman[d]));b.onclick=()=>pick(d);grid.append(b);});
+      draw(); showStats(); play();
+    }
+    function draw(){slots.innerHTML='';q.degs.forEach((d,i)=>{const f=filled[i];
+      const s=h('div',{class:'slot'+(answered?(f===d?' good':' bad'):f!=null?' fill':i===filled.length?' cur':'')},f!=null?Sc.roman[f]:'?');
+      if(answered&&f!==d) s.append(h('small',{},'era '+Sc.roman[d])); slots.append(s);});}
+    function pick(d){if(answered){return;} filled.push(d); draw(); if(filled.length===4) check();}
+    function check(){
+      answered=true; n++; const ok=filled.every((f,i)=>f===q.degs[i]); if(ok) right++;
+      filled.forEach((f,i)=>{if(f!==q.degs[i]){const k=Sc.roman[q.degs[i]]+' → '+Sc.roman[f];conf.set(k,(conf.get(k)||0)+1);}});
+      draw(); fb.className='feedback '+(ok?'ok':'err'); fb.textContent=ok?'Certo! '+q.degs.map(d=>Sc.roman[d]).join(' – '):'A progressão era '+q.degs.map(d=>Sc.roman[d]).join(' – ')+'. Ouça de novo e compare.';
+      bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats(); if(ok) timer=setTimeout(next,1500);
+    }
+    bHear.onclick=()=>play(); bUndo.onclick=()=>{if(!answered&&filled.length>1){filled.pop();draw();}}; bNext.onclick=next;
+    stop=()=>clearTimeout(timer); next();
+  }
+
+  // ---------- Ditado melódico ----------
+  let midiNote=null;
+  function Ditado(root){
+    let n=0,right=0,q=null,pos=1,errs=0,timer=0; const conf=new Map();
+    const stats=h('div',{class:'stats'}), slots=h('div',{class:'slots'}), fb=h('p',{class:'feedback','aria-live':'polite'});
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('class','kbd');
+    const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir de novo'), bCad=h('button',{class:'btn',type:'button'},'Ouvir o tom'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
+    const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,bCad),slots,fb,h('div',{class:'kbd-scroll'},svg),h('div',{class:'row'},bNext)); root.append(card);
+    const kb=keyboard(svg,m=>press(m));
+    const Sc=SCALES[S.diMode];
+    function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
+      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Sem erro',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
+    const play=()=>playNotes(q.ms,{arp:0.6,dur:0.7});
+    function next(){
+      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf,'Todas as melodias sem erro. Aumente o número de notas ou use a oitava inteira.');
+      const k=keyOf(S.diMode,true), t=60+k.pc>71?48+k.pc:60+k.pc, top=S.diRange==='cinco'?4:7;
+      const degs=[0]; for(let i=1;i<S.diLen;i++){let d;do{d=degs[i-1]+rnd([-2,-1,-1,1,1,2,3,-3]);}while(d<0||d>top||d===degs[i-1]);degs.push(d);}
+      const ms=degs.map(d=>t+(d===7?12:Sc.iv[d]));
+      q={k,t,degs,ms,names:degs.map(d=>d===7?degName(k,1):degName(k,d+1))}; pos=1; errs=0;
+      fb.textContent='Começa na tônica ('+q.names[0]+'). Toque as outras '+(S.diLen-1)+' notas.'; fb.className='feedback'; bNext.hidden=true;
+      kb.set({lo:t-5,hi:t+16,fills:new Map([[ms[0],'var(--t-soft)']]),marks:new Set()}); draw(); showStats(); play();
+    }
+    function draw(){slots.innerHTML='';q.ms.forEach((m,i)=>slots.append(h('div',{class:'slot'+(i<pos?' good':i===pos?' cur':'')},i<pos?q.names[i]:'?')));}
+    function press(m,e){
+      playNotes([m],{dur:0.8}); if(!q||pos>=q.ms.length) return;
+      const want=q.ms[pos];
+      if((m-want)%12===0){kb.flash(m,'var(--t)');pos++;draw();
+        if(pos>=q.ms.length){n++; if(!errs) right++; fb.className='feedback ok'; fb.textContent=(errs?'Completo, com '+errs+(errs>1?' erros.':' erro.'):'Perfeito!')+' '+q.names.join(' – ');
+          bNext.hidden=false; bNext.textContent=n>=TOTAL?'Ver resultado':'Próxima'; showStats(); if(!errs) timer=setTimeout(next,1800);}
+      } else {kb.flash(m,'var(--d)'); errs++; const k='nota '+(pos+1)+': '+q.names[pos]; conf.set(k,(conf.get(k)||0)+1);
+        fb.className='feedback err'; fb.textContent='Não é essa. Ouça de novo se precisar.';}
+    }
+    bHear.onclick=play; bCad.onclick=()=>cadence({...q.k,t:q.t}); bNext.onclick=next;
+    midiNote=press; stop=()=>{clearTimeout(timer);midiNote=null;}; next();
+  }
+  midi((m,e)=>{if(midiNote) midiNote(m,e);});
+
+  function start(){stop();stop=()=>{};const m=$('main');m.innerHTML='';
+    ({intervalos:Intervalos,acordes:Acordes,graus:Graus,progressoes:Progressoes,ditado:Ditado})[S.ex](m);}
+  document.addEventListener('touchend',()=>playNotes([]),{passive:true});
+  controls(); start();
+})();
+</script>
+</body>
+</html>

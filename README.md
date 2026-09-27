@@ -29,13 +29,22 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - Ouvir e escolher: ouça o ritmo e escolha entre quatro partituras.
   - Valores das figuras: quantos tempos vale, qual o nome e qual figura completa o compasso; tabela de figuras e pausas.
   - Compasso 2/4, 3/4 ou 4/4; três níveis (até semínima, colcheias, semicolcheias e pontuadas); andamento ajustável.
+- **`primeira-vista.html`:** Leitura à Primeira Vista.
+  - Melodias geradas na hora (2 ou 4 compassos), com notas da escala e ritmo, começando e terminando na tônica.
+  - Modo “Esperar por mim” (espera a nota certa, sem relógio) ou “No tempo” (contagem, metrônomo e conferência de altura e tempo de cada nota).
+  - Clave de Sol ou Fá; tom maior ou menor; 5 notas, uma oitava ou a pauta toda; três níveis de ritmo; 2/4, 3/4 ou 4/4; andamento ajustável.
+- **`treino-ouvido.html`:** Treino de Ouvido.
+  - Intervalos (subindo, descendo ou juntos) e tipos de acorde (tríades e tétrades, com inversões), com comparação depois da resposta.
+  - Graus da escala: a cadência define o tom, a nota toca e depois resolve na tônica.
+  - Progressões: quatro acordes no tom para identificar os graus.
+  - Ditado melódico: ouça de 3 a 6 notas e toque de volta no teclado ou no piano MIDI.
 
-Em breve: treino de ouvido, tocar e conferir (piano via MIDI).
+Em breve: tocar e conferir (escalas e acordes pelo piano via MIDI).
 
 ## Arquivos compartilhados
 
 - **`style.css`:** cores (claro/escuro), tipografia e controles comuns (chips, botões, etiquetas de função). Toda página nova deve incluí-lo.
-- **`music.js`:** nomes e grafia de notas, áudio (Web Audio) e um teclado simples em SVG, expostos em `window.Music`.
+- **`music.js`:** nomes e grafia de notas, áudio (Web Audio, com clique de metrônomo), teclado em SVG (simples e tocável) e piano MIDI, expostos em `window.Music`.
 - **`theme.js`:** seletor de tema Auto/Claro/Escuro. Inclua no `<head>` (sem `defer`) e coloque `<div class="seg theme" id="theme"></div>` onde o seletor deve aparecer.
 
 O som é gerado no navegador (Web Audio API). No iPhone/iPad, desative o modo silencioso para ouvir.
