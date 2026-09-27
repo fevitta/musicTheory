@@ -14,6 +14,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="style.css">
 <script src="theme.js"></script>
+<script src="versao.js" defer></script>
 <script src="progresso.js"></script>
 <title>Teoria Musical no Piano</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,7 +143,8 @@ footer{font-size:13px;color:var(--muted)}
     </div>
   </main>
 
-  <footer>O som é gerado no navegador. No iPhone/iPad, desative o modo silencioso para ouvir.</footer>
+  <footer>O som é gerado no navegador. No iPhone/iPad, desative o modo silencioso para ouvir. <span id="ver"></span></footer>
+  <script>addEventListener('DOMContentLoaded',()=>{if(window.AppVersion) document.getElementById('ver').textContent='Versão '+AppVersion.version+'.';});</script>
 </div>
 </body>
 </html>

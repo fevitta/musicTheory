@@ -70,6 +70,9 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 .today-pill:hover{border-color:var(--accent);color:var(--accent)}
 .today-pill.met{color:var(--t);border-color:var(--t)}
 
+.update-toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));margin:0 auto;max-width:460px;z-index:50;display:flex;align-items:center;gap:8px;background:var(--surface);color:var(--ink);border:1px solid var(--accent);border-radius:12px;padding:10px 10px 10px 16px;box-shadow:0 8px 28px rgba(0,0,0,.18);font-size:14px;font-weight:600}
+.update-toast span{flex:1}
+
 @media (max-width:600px){
   .seg button,.chip,.btn{min-height:40px}
 }
