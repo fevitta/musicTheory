@@ -18,6 +18,11 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - Tonalidade provável, com alternativas, armadura de clave e tom relativo.
   - Função de cada acorde, incluindo dominantes secundárias, empréstimo modal e diminutos de passagem.
   - Transposição para qualquer tom, mantendo os acordes alinhados sobre a letra.
+- **`leitura-partitura.html`:** Leitura de Partitura.
+  - Clave de Sol ou de Fá; tom e escala (Maior, Menor, Menor harmônica, Menor melódica), com armadura de clave.
+  - 30 notas por rodada, na pauta ou com linhas suplementares; toque cada uma no teclado da tela (ou num piano MIDI).
+  - Errou, tenta de novo; depois de 3 erros a tecla certa é marcada. No fim: acertos de primeira, erros, tempo e as notas que mais custaram.
+  - Opções: exigir a oitava certa, nomes nas teclas, som.
 
 Em breve: treino de ouvido, tocar e conferir (piano via MIDI).
 
