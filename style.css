@@ -14,6 +14,8 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   --display:"Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
   --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* Cifras, graus e nomes de tom: traço uniforme, sem confundir C com G (a --display é só para títulos) */
+  --chord:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){

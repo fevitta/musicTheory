@@ -53,8 +53,8 @@
 
 .info{display:flex;flex-direction:column;gap:12px}
 .info-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.big-cifra{font-family:var(--display);font-size:56px;line-height:1;font-weight:700}
-.roman{font-family:var(--display);font-size:22px;color:var(--muted)}
+.big-cifra{font-family:var(--chord);font-size:50px;line-height:1;font-weight:600;letter-spacing:-.01em}
+.roman{font-family:var(--chord);font-size:20px;font-weight:500;color:var(--muted)}
 dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
 dt{color:var(--muted)}
 dd{margin:0;font-family:var(--mono);font-size:13.5px}
@@ -65,9 +65,9 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
 .deg{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 10px 10px;text-align:left;display:flex;flex-direction:column;gap:6px;position:relative;transition:border-color .15s,transform .15s}
 .deg:hover{border-color:var(--accent);transform:translateY(-1px)}
 .deg[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
-.deg .r{font-family:var(--display);font-size:17px;font-weight:700}
+.deg .r{font-family:var(--chord);font-size:16px;font-weight:600}
 .deg.T .r{color:var(--t)} .deg.SD .r{color:var(--sd)} .deg.D .r{color:var(--d)}
-.deg .c{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.05;word-break:break-word}
+.deg .c{font-family:var(--chord);font-size:24px;font-weight:600;line-height:1.05;word-break:break-word}
 .deg .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .deg .f{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
 .deg.T .f{color:var(--t)} .deg.SD .f{color:var(--sd)} .deg.D .f{color:var(--d)}
@@ -98,7 +98,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
 .prog:hover{border-color:var(--accent)}
 .prog.playing{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset}
 .prog .pr{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.prog .pc{font-family:var(--display);font-size:22px;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 10px}
+.prog .pc{font-family:var(--chord);font-size:20px;font-weight:600;display:flex;flex-wrap:wrap;gap:4px 10px}
 .prog .pc span.on{color:var(--accent)}
 .prog .pd{font-size:13px;color:var(--muted)}
 
@@ -475,7 +475,7 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
       const grp=E('g',{class:'node',tabindex:0,role:'button','aria-label':`${c.cifra}, ${LANE[f].label}`});
       E('circle',{cx:p.x,cy:p.y,r:R,fill:sel?`var(--${f.toLowerCase()})`:'var(--surface)',stroke:`var(--${f.toLowerCase()})`,'stroke-width':inTrail||sel?3.5:2},grp);
       const txt=S.names==='sol'?c.root.sol+c.cifra.slice(c.root.name.length):c.cifra; const fs=txt.length<=3?19:txt.length<=5?15:txt.length<=7?12:10.5;
-      E('text',{x:p.x,y:p.y+fs*0.35,'text-anchor':'middle','font-size':fs,'font-weight':700,'font-family':'Bodoni Moda, Georgia, serif',fill:sel?'var(--on-accent)':'var(--ink)'},grp).textContent=txt;
+      E('text',{x:p.x,y:p.y+fs*0.35,'text-anchor':'middle','font-size':fs,'font-weight':600,'font-family':'IBM Plex Sans, system-ui, sans-serif',fill:sel?'var(--on-accent)':'var(--ink)'},grp).textContent=txt;
       E('text',{x:p.x,y:p.y+R+16,'text-anchor':'middle','font-size':11,'font-family':'IBM Plex Mono, monospace',fill:'var(--muted)'},grp).textContent=c.roman;
       const go=()=>{stopProg();toChordView();const v=twoHand(d,trail.length?cur:null);trail.push(d);if(trail.length>8)trail.shift();showChord(d,S.play==='arpejo'?'arp':true,v);};
       grp.addEventListener('click',go); grp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
