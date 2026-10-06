@@ -3,6 +3,7 @@
   "short_name": "Teoria no Piano",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#F3F4F7",
   "theme_color": "#2946C9",
   "lang": "pt-BR",

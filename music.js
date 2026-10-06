@@ -83,7 +83,7 @@
       for(let m=lo;m<=hi;m++){ if(BLACK.has(m%12)) blacks.push({m,x:x-BW/2}); else {whites.push({m,x}); x+=WW;} }
       svg.setAttribute('viewBox',`0 0 ${x+1} ${WH+2}`); svg.style.minWidth=Math.round(whites.length*24)+'px';
       const fill=(m,base)=>fl&&fl.m===m?fl.color:st.fills.get(m)||base, mono='IBM Plex Mono, monospace';
-      const key=(k,attrs)=>{const r=el('rect',attrs);r.style.cursor='pointer';r.dataset.m=k.m;r.addEventListener('pointerdown',e=>{e.preventDefault();onPress(k.m,e);});};
+      const key=(k,attrs)=>{const r=el('rect',attrs);r.style.cursor='pointer';r.dataset.m=k.m;r.addEventListener('pointerdown',e=>down(k.m,e));};
       whites.forEach(k=>{const mk=st.marks.has(k.m);
         key(k,{x:k.x,y:1,width:WW-1,height:WH,rx:5,fill:fill(k.m,'var(--kw)'),stroke:mk?'var(--accent)':'var(--kw-edge)','stroke-width':mk?4:1});
         const pc=k.m%12;
@@ -91,6 +91,19 @@
         if(pc===0) el('text',{x:k.x+(WW-1)/2,y:WH-(st.names?28:12),'text-anchor':'middle','font-size':10,'font-family':mono,fill:'var(--muted)','pointer-events':'none'},'C'+(Math.floor(k.m/12)-1));});
       blacks.forEach(k=>{const mk=st.marks.has(k.m);key(k,{x:k.x,y:0,width:BW,height:BH,rx:3,fill:fill(k.m,'var(--kb)'),stroke:mk?'var(--accent)':'var(--kb)','stroke-width':mk?4:1});});
     }
+    // Toque × arrastar: se o teclado não cabe na tela (rola para o lado), um toque no dedo só conta ao soltar sem ter
+    // arrastado; arrastar rola o teclado sem tocar nota. Mouse, ou teclado que cabe inteiro: toca na hora.
+    // onPress recebe o evento do toque inicial (o instante certo para conferir o tempo).
+    const touches=new Map();
+    const scrolls=()=>{const sc=svg.parentElement;return sc&&sc.scrollWidth>sc.clientWidth+2;};
+    function down(m,e){
+      if(e.pointerType==='mouse'||!scrolls()){e.preventDefault();onPress(m,e);return;}
+      touches.set(e.pointerId,{m,e,x:e.clientX,y:e.clientY,left:svg.parentElement.scrollLeft});
+    }
+    const far=(t,e)=>Math.abs(e.clientX-t.x)>10||Math.abs(e.clientY-t.y)>10||Math.abs(svg.parentElement.scrollLeft-t.left)>4;
+    svg.addEventListener('pointermove',e=>{const t=touches.get(e.pointerId); if(t&&far(t,e)) touches.delete(e.pointerId);});
+    svg.addEventListener('pointerup',e=>{const t=touches.get(e.pointerId); touches.delete(e.pointerId); if(t&&!far(t,e)) onPress(t.m,t.e);});
+    svg.addEventListener('pointercancel',e=>touches.delete(e.pointerId));
     return {draw,
       set(o){Object.assign(st,o);draw();},
       flash(m,color){fl={m,color,t:Date.now()};draw();setTimeout(()=>{if(fl&&Date.now()-fl.t>=330){fl=null;draw();}},350);}};

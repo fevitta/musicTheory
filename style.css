@@ -34,7 +34,8 @@ button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   --kw:#E7E6E1; --kw-edge:#5A5F70; --kb:#0A0B0F; --dot:#6E7797;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:28px 56px}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:28px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))} /* em paisagem, desvia do entalhe */
 .wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
 header{display:flex;flex-direction:column;gap:6px}
 .top-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px}
@@ -75,5 +76,33 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 
 @media (max-width:600px){
   .seg button,.chip,.btn{min-height:40px}
+}
+/* Celular deitado (paisagem): cabeçalho compacto e pauta/teclado cabendo na altura da tela */
+@media (orientation:landscape) and (max-height:520px){
+  body{padding-block:10px 28px}
+  .wrap{gap:14px}
+  header{gap:2px}
+  h1{font-size:26px}
+  .lede{display:none}
+  h2{font-size:21px}
+  .card{padding:12px;gap:10px}
+  /* área de treino: tudo mais baixo para pauta e teclado caberem juntos */
+  .stats{gap:2px 16px}
+  .stats .stat b{font-size:15px}
+  .stats .lbl{font-size:9.5px}
+  .bar{height:4px}
+  p.prompt:not(:has(b)){display:none}
+  .prompt b{font-size:20px!important}
+  .feedback{font-size:13.5px;min-height:1.3em}
+  .count{min-height:28px}
+  .count:has(.msg){display:none} /* instruções já estão no botão e no aviso */
+  .count span{font-size:24px}
+  .kbd-scroll svg,#piano,.kbd{max-height:31vh!important}
+  #staff{max-height:30vh}
+  #score{max-height:33vh}
+  svg.score{max-height:40vh}
+  .cifra{font-size:44px!important}
+  #pad{min-height:70px!important}
+  .seg button,.chip,.btn{min-height:34px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

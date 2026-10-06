@@ -9,6 +9,10 @@
     try{t==='auto'?localStorage.removeItem(KEY):localStorage.setItem(KEY,t);}catch(e){}
     document.querySelectorAll('#theme button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.t===t)));
   }
+  // Ao deitar o celular, rola até o exercício da página (a seção marcada com data-foco)
+  const land=matchMedia('(orientation: landscape) and (max-height: 520px)');
+  const focus=()=>{if(!land.matches) return; const el=document.querySelector('[data-foco]'); if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),250);};
+  if(land.addEventListener) land.addEventListener('change',focus); else if(land.addListener) land.addListener(focus);
   // Monta o seletor em qualquer página que tenha <div class="seg theme" id="theme">
   document.addEventListener('DOMContentLoaded',()=>{
     const box=document.getElementById('theme'); if(!box) return;
