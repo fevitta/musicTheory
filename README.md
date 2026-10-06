@@ -38,6 +38,11 @@ Guias interativos de teoria musical para quem estuda piano. Site estático (HTML
   - Graus da escala: a cadência define o tom, a nota toca e depois resolve na tônica.
   - Progressões: quatro acordes no tom para identificar os graus.
   - Ditado melódico: ouça de 3 a 6 notas e toque de volta no teclado ou no piano MIDI.
+- **`acordes.html`:** Treino de Acordes.
+  - Mostra a cifra e você toca as notas no teclado da tela (liga/desliga cada tecla) ou no piano MIDI (o acorde inteiro de uma vez). Vale qualquer oitava.
+  - Acordes de tipos escolhidos (maior, menor, °, +, sus2, sus4, 7, 7M, m7, m7(♭5), °7, 6, m6, add9), com fundamentais em todas as 12 notas ou só nas naturais, ou do campo harmônico de um tom (tríades ou tétrades, com o grau).
+  - Inversões opcionais (C/E): a nota mais grave tem que ser o baixo pedido.
+  - Rodada de 20 cifras ou contra o relógio (60 s, com recorde); depois de 3 erros a resposta é marcada no teclado.
 - **`progresso.html`:** Seu Progresso.
   - Meta diária (5 a 30 min), sequência de dias batendo a meta e recorde, tempo total e acerto.
   - Calendário das últimas semanas, minutos dos últimos 14 dias e acerto por exercício (7 dias, 30 dias ou tudo).

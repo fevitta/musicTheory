@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Treino de acordes: veja a cifra e toque as notas no teclado. Tríades, tétrades, inversões e campo harmônico.">
+<meta name="theme-color" content="#F3F4F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10121A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Teoria no Piano">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css">
+<script src="theme.js"></script>
+<script src="versao.js" defer></script>
+<script src="music.js"></script>
+<script src="progresso.js"></script>
+<title>Treino de Acordes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+section{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ctls{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 24px}
+.ctl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.chip{font-family:var(--sans)}
+.chip.mono{font-family:var(--mono)}
+#tonics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;max-width:420px}
+#tonics .chip{min-width:0;padding:6px 3px;font-size:13px;font-family:var(--mono)}
+.toggle{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;display:inline-flex;gap:7px;align-items:center}
+.toggle::before{content:"";width:14px;height:14px;border-radius:4px;border:1.5px solid var(--muted);box-sizing:border-box}
+.toggle[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.toggle[aria-pressed="true"]::before{background:var(--accent);border-color:var(--accent);box-shadow:inset 0 0 0 2px var(--surface)}
+.link{border:0;background:none;color:var(--accent);font-size:13px;font-weight:600;padding:4px 2px}
+.link:hover{text-decoration:underline}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;align-items:baseline}
+.stat{display:flex;flex-direction:column}
+.stat b{font-family:var(--mono);font-size:20px;font-weight:500;line-height:1.2}
+.stat.ok b{color:var(--t)} .stat.err b{color:var(--d)}
+.stat.rec{margin-left:auto;text-align:right}
+.bar{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width .2s}
+.prompt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0 2px;text-align:center}
+.cifra{font-family:var(--display);font-weight:700;font-size:clamp(56px,12vw,88px);line-height:1}
+.cifra.ok{color:var(--t)}
+.sub{font-size:14px;color:var(--muted);min-height:1.4em}
+.feedback{min-height:1.6em;font-size:15px;font-weight:600;margin:0;text-align:center}
+.feedback.ok{color:var(--t)} .feedback.err{color:var(--d)}
+.kbd-scroll{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#piano{display:block;width:100%;height:auto;max-height:210px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.result{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:14px}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(44px,8vw,64px);line-height:1}
+.big small{font-size:.45em;color:var(--muted);font-weight:500}
+dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0;font-size:14px}
+dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
+.missed{display:flex;flex-wrap:wrap;gap:6px}
+.missed span{font-family:var(--mono);font-size:13px;padding:4px 9px;border-radius:999px;background:var(--d-soft);color:var(--d)}
+.newrec{color:var(--t);font-weight:600;font-size:14px;margin:0}
+.empty{color:var(--muted);font-size:14px;margin:0}
+@media (max-width:700px){ .result{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top-bar">
+      <a class="eyebrow" href="index.html">← Teoria musical no piano</a>
+      <div class="seg theme" id="theme" role="group" aria-label="Tema"></div>
+    </div>
+    <h1>Treino de Acordes</h1>
+    <p class="lede">Aparece a cifra: toque as notas do acorde no teclado. Toque numa tecla de novo para tirá-la. Vale qualquer oitava; com inversões, a nota mais grave tem que ser o baixo pedido.</p>
+  </header>
+
+  <section>
+    <div class="card">
+      <div class="ctls">
+        <div class="ctl"><span class="lbl">Acordes de</span><div class="seg" id="sources" role="group" aria-label="De onde vêm os acordes"></div><span class="hint" id="sourceHint"></span></div>
+        <div class="ctl" id="typesCtl"><span class="lbl">Tipos</span><div class="row" id="types" role="group" aria-label="Tipos de acorde"></div><div class="row" id="presets"></div></div>
+        <div class="ctl" id="rootsCtl"><span class="lbl">Fundamentais</span><div class="seg" id="roots" role="group" aria-label="Fundamentais"></div></div>
+        <div class="ctl" id="fieldCtl"><span class="lbl">Tom</span><div class="row"><div class="seg" id="modes" role="group" aria-label="Escala"></div><div class="seg" id="sizes" role="group" aria-label="Tríades ou tétrades"></div></div><div id="tonics" role="group" aria-label="Tom"></div></div>
+        <div class="ctl"><span class="lbl">Rodada</span><div class="seg" id="rounds" role="group" aria-label="Rodada"></div><span class="hint" id="roundHint"></span></div>
+      </div>
+      <div class="row" id="opts"></div>
+    </div>
+  </section>
+
+  <section id="train">
+    <div class="card">
+      <div class="stats">
+        <div class="stat"><span class="lbl">Acorde</span><b id="sNum"></b></div>
+        <div class="stat ok"><span class="lbl">De primeira</span><b id="sOk">0</b></div>
+        <div class="stat err"><span class="lbl">Erros</span><b id="sErr">0</b></div>
+        <div class="stat"><span class="lbl" id="sTimeLbl">Tempo</span><b id="sTime">0:00</b></div>
+        <div class="stat rec" id="recBox" hidden><span class="lbl">Recorde</span><b id="sRec">–</b></div>
+      </div>
+      <div class="bar"><span id="bar"></span></div>
+      <div class="prompt"><div class="cifra" id="cifra" aria-live="polite"></div><div class="sub" id="sub"></div></div>
+      <p class="feedback" id="fb" aria-live="polite"></p>
+      <div class="kbd-scroll"><svg id="piano" role="group" aria-label="Teclado: toque as notas do acorde"></svg></div>
+      <div class="actions">
+        <button class="btn" id="clear" type="button">Limpar teclas</button>
+        <button class="btn" id="hint" type="button">Ver resposta</button>
+        <button class="btn" id="skip" type="button">Pular</button>
+        <button class="btn" id="restart" type="button" style="margin-left:auto">Recomeçar</button>
+      </div>
+      <span class="hint" id="midiInfo">Com piano MIDI (Chrome, Edge), toque o acorde inteiro de uma vez.</span>
+    </div>
+  </section>
+
+  <section id="done" hidden>
+    <h2>Resultado</h2>
+    <div class="result">
+      <div class="card">
+        <span class="lbl" id="rLbl">Acertos de primeira</span>
+        <div class="big" id="rScore"></div>
+        <p class="newrec" id="rRec" hidden></p>
+        <dl><dt>Erros</dt><dd id="rErr"></dd><dt>Tempo</dt><dd id="rTime"></dd><dt>Por acorde</dt><dd id="rAvg"></dd></dl>
+        <div class="actions"><button class="btn primary" id="again" type="button">Treinar de novo</button></div>
+      </div>
+      <div class="card"><span class="lbl">Acordes em que você errou</span><div class="missed" id="rMissed"></div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const {parse,niceT,spellAt,playNotes,keyboard,midi}=Music;
+  const $=id=>document.getElementById(id);
+  function h(tag,attrs={},...kids){const e=document.createElement(tag);for(const k in attrs){if(k==='class')e.className=attrs[k];else e.setAttribute(k,attrs[k]);}kids.flat().forEach(c=>c!=null&&e.append(c));return e;}
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+  const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d;}catch(e){return d;}};
+  const fmtTime=ms=>{const s=Math.max(0,Math.round(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
+
+  // Tipos: semitons, graus (letras a partir da fundamental, para a grafia) e sufixo da cifra
+  const TYPES=[
+    ['M','Maior','',[0,4,7],[0,2,4]],['m','Menor','m',[0,3,7],[0,2,4]],['dim','Diminuto','°',[0,3,6],[0,2,4]],['aug','Aumentado','+',[0,4,8],[0,2,4]],
+    ['sus2','Sus2','sus2',[0,2,7],[0,1,4]],['sus4','Sus4','sus4',[0,5,7],[0,3,4]],
+    ['7','Com sétima (7)','7',[0,4,7,10],[0,2,4,6]],['7M','Sétima maior (7M)','7M',[0,4,7,11],[0,2,4,6]],['m7','Menor com sétima (m7)','m7',[0,3,7,10],[0,2,4,6]],
+    ['m7b5','Meio-diminuto (m7(♭5))','m7(♭5)',[0,3,6,10],[0,2,4,6]],['dim7','Diminuto com sétima (°7)','°7',[0,3,6,9],[0,2,4,6]],
+    ['6','Com sexta (6)','6',[0,4,7,9],[0,2,4,5]],['m6','Menor com sexta (m6)','m6',[0,3,7,9],[0,2,4,5]],['add9','Com nona (add9)','add9',[0,4,7,2],[0,2,4,1]]
+  ].map(([k,name,suf,iv,deg])=>({k,name,suf,iv,deg}));
+  const T=k=>TYPES.find(t=>t.k===k);
+  const PRESETS=[['Maiores e menores',['M','m']],['Tríades',['M','m','dim','aug']],['Com sétima',['7','7M','m7','m7b5','dim7']],['Todos',TYPES.map(t=>t.k)]];
+  // Grafias usuais de cada fundamental (acordes maiores e menores preferem grafias diferentes)
+  const ROOTS_MAJ=['C','Db','D','Eb','E','F','F#','G','Ab','A','Bb','B'], ROOTS_MIN=['C','C#','D','Eb','E','F','F#','G','G#','A','Bb','B'];
+  const SCALES={maior:{name:'Maior',iv:[0,2,4,5,7,9,11],tonics:ROOTS_MAJ,tri:['M','m','m','M','M','m','dim'],tet:['7M','m7','m7','7M','7','m7','m7b5'],roman:['I','ii','iii','IV','V','vi','vii°']},
+    menor:{name:'Menor',iv:[0,2,3,5,7,8,11],tonics:ROOTS_MIN,tri:['m','dim','M','m','M','M','dim'],tet:['m7','m7b5','7M','m7','7','7M','dim7'],roman:['i','ii°','III','iv','V','VI','vii°']}};
+  const TOTAL=20, CLOCK=60;
+
+  const S={source:'livre',types:['M','m'],roots:'todas',mode:'maior',tonic:'C',size:'tri',round:'count',inv:false,formula:true,names:false,sound:true};
+  Object.assign(S,load('acordes-cfg',{}));
+  S.types=(S.types||[]).filter(k=>T(k)); if(!S.types.length) S.types=['M','m'];
+  if(!SCALES[S.mode]) S.mode='maior'; if(!SCALES[S.mode].tonics.includes(S.tonic)) S.tonic='C';
+  const save=()=>store('acordes-cfg',S);
+  const timed=()=>S.round==='clock';
+
+  // ---------- Acordes ----------
+  function makeChord(rootName,type,degree){
+    const t=T(type), {li,pc}=parse(rootName);
+    const notes=t.iv.map((x,i)=>spellAt(li+t.deg[i],(pc+x)%12));
+    // Inversão: 3ª, 5ª ou 7ª no baixo (na add9, só 3ª ou 5ª); 0 = fundamental no baixo
+    const options=t.k==='add9'?3:t.iv.length, inv=S.inv?Math.floor(Math.random()*options):0;
+    const bass=inv?notes[inv]:null;
+    return {type:t,notes,pcs:new Set(notes.map(n=>n.pc)),bass,degree,cifra:niceT(rootName)+t.suf+(bass?'/'+bass.name:'')};
+  }
+  function genChord(prev){
+    let c, tries=0;
+    do{
+      if(S.source==='campo'){const Sc=SCALES[S.mode], {li,pc}=parse(S.tonic), d=Math.floor(Math.random()*7), n=spellAt(li+d,(pc+Sc.iv[d])%12);
+        c=makeChord(n.letter+(n.acc>0?'#'.repeat(n.acc):'b'.repeat(-n.acc)),(S.size==='tri'?Sc.tri:Sc.tet)[d],Sc.roman[d]);}
+      else {const type=rnd(S.types), minorish=/^m|dim/.test(type), pool=(minorish?ROOTS_MIN:ROOTS_MAJ).filter(r=>S.roots==='todas'||r.length===1);
+        c=makeChord(rnd(pool),type,null);}
+    }while(prev&&c.cifra===prev.cifra&&tries++<20);
+    return c;
+  }
+  const noteList=c=>c.notes.map(n=>n.sol).join(' – ');
+
+  // ---------- Rodada ----------
+  let R=null, held=new Set(), sel=new Map(); // sel: tecla → 'ok' | 'bad' (teclado da tela); held: teclas presas no MIDI
+  const kb=keyboard($('piano'),m=>tap(m));
+  function newRound(){
+    R={i:0,items:[],errors:0,start:null,end:null,revealed:false,locked:false};
+    R.items.push({c:genChord(null),tries:0});
+    $('done').hidden=true; sel.clear(); show(); stats();
+  }
+  const cur=()=>R.items[R.i];
+  function show(){
+    const it=cur(), c=it.c;
+    $('cifra').textContent=c.cifra; $('cifra').className='cifra';
+    const parts=[];
+    if(c.degree) parts.push('Grau '+c.degree+' em '+niceT(S.tonic)+' '+SCALES[S.mode].name.toLowerCase());
+    if(S.formula) parts.push(c.type.name+(c.bass?' · baixo em '+c.bass.sol:''));
+    $('sub').textContent=parts.join(' · ');
+    setFb('',''); drawKeys();
+  }
+  function drawKeys(){
+    const it=R&&cur(), fills=new Map();
+    sel.forEach((v,m)=>fills.set(m,v==='ok'?'var(--t)':'var(--d)'));
+    // Resposta: a nota do baixo (ou a fundamental) na oitava de baixo e as outras logo acima dela
+    const marks=new Set();
+    if(R&&R.revealed&&it){const b=48+(it.c.bass||it.c.notes[0]).pc; it.c.notes.forEach(n=>marks.add(b+((n.pc-b)%12+12)%12));}
+    kb.set({lo:48,hi:71,names:S.names,fills,marks});
+  }
+  function setFb(t,cls){$('fb').textContent=t;$('fb').className='feedback'+(cls?' '+cls:'');}
+  const recKey=()=>[S.source,S.source==='campo'?S.mode+S.tonic+S.size:S.types.slice().sort().join('.')+S.roots,S.inv?1:0].join('|');
+  function stats(){
+    const ok=R.items.filter(x=>x.done&&!x.tries).length, el=R.start?(R.end||Date.now())-R.start:0;
+    $('sNum').textContent=timed()?String(R.i):Math.min(R.i+1,TOTAL)+'/'+TOTAL; $('sOk').textContent=ok; $('sErr').textContent=R.errors;
+    $('sTimeLbl').textContent=timed()?'Restam':'Tempo';
+    $('sTime').textContent=fmtTime(timed()?CLOCK*1000-el:el);
+    $('bar').style.width=(timed()?Math.min(100,el/CLOCK/10):R.i/TOTAL*100)+'%';
+    $('recBox').hidden=!timed(); const rec=load('acordes-recordes',{})[recKey()]; $('sRec').textContent=rec!=null?rec:'–';
+  }
+  setInterval(()=>{if(!R||!R.start||R.end) return; stats(); if(timed()&&Date.now()-R.start>=CLOCK*1000){R.end=Date.now();finish();}},250);
+
+  // Tecla do teclado da tela: liga/desliga. Nota fora do acorde conta erro e fica vermelha até você tirar.
+  function tap(m){
+    if(!R||R.end||R.locked) return;
+    const it=cur(), okKeys=()=>[...sel].filter(([,v])=>v==='ok').map(([k])=>k);
+    if(sel.has(m)){sel.delete(m); if(okKeys().length) check(okKeys()); else setFb('',''); drawKeys(); return;}  // tirar uma tecla também confere de novo
+    if(S.sound) playNotes([m],{dur:0.9});
+    if(!R.start) R.start=Date.now();
+    if(it.c.pcs.has(m%12)){sel.set(m,'ok'); check(okKeys());}
+    else {sel.set(m,'bad'); miss(it,'Essa nota não está no acorde.');}
+    drawKeys();
+  }
+  // Piano MIDI: confere o que está pressionado junto
+  function midiOn(m){
+    if(!R||R.end||R.locked) return; const it=cur(); if(!R.start) R.start=Date.now();
+    held.add(m); if(!it.c.pcs.has(m%12)){miss(it,'Essa nota não está no acorde.'); return;}
+    check([...held]);
+  }
+  function check(ms){
+    const it=cur(), c=it.c, pcs=new Set(ms.map(m=>m%12));
+    if(![...c.pcs].every(p=>pcs.has(p))) {setFb('Faltam '+(c.pcs.size-[...c.pcs].filter(p=>pcs.has(p)).length)+' nota(s).',''); return;}
+    if([...sel.values()].includes('bad')){setFb('Tire a nota vermelha.','err'); return;}
+    if(ms.some(m=>!c.pcs.has(m%12))){setFb('Solte a nota que não é do acorde.','err'); return;}
+    if(c.bass&&Math.min(...ms)%12!==c.bass.pc){setFb('As notas estão certas, mas o baixo (a mais grave) tem que ser '+c.bass.sol+'.','err'); return;}
+    success(it,ms);
+  }
+  function miss(it,msg){
+    it.tries++; R.errors++;
+    if(it.tries>=3&&!R.revealed){R.revealed=true; msg+=' A resposta está marcada no teclado: '+noteList(it.c)+'.';}
+    setFb(msg,'err'); stats();
+  }
+  function success(it,ms){
+    it.done=true; R.locked=true; Progress.log('acordes:cifra',it.tries===0);
+    if(S.sound) playNotes(ms.slice().sort((a,b)=>a-b),{dur:1.3});
+    $('cifra').className='cifra ok'; setFb((it.tries?'Isso! ':'Certo! ')+it.c.cifra+' = '+noteList(it.c),'ok');
+    R.i++; stats();
+    setTimeout(()=>{
+      if(!timed()&&R.i>=TOTAL){R.end=Date.now(); finish(); return;}
+      if(R.end) return;
+      R.items.push({c:genChord(it.c),tries:0}); R.revealed=false; R.locked=false; sel.clear(); show();
+    },S.sound?1100:700);
+  }
+  function finish(){
+    R.locked=true; const done=R.items.filter(x=>x.done), ok=done.filter(x=>!x.tries).length, time=(R.end||Date.now())-(R.start||Date.now());
+    $('rLbl').textContent=timed()?'Certos de primeira em '+CLOCK+' s':'Acertos de primeira';
+    $('rScore').innerHTML=''; $('rScore').append(String(ok),h('small',{},timed()?' de '+done.length:' / '+done.length));
+    $('rRec').hidden=true;
+    if(timed()){const recs=load('acordes-recordes',{}),old=recs[recKey()];
+      if(old==null||ok>old){recs[recKey()]=ok;store('acordes-recordes',recs); if(ok){$('rRec').hidden=false;$('rRec').textContent=old==null?'Primeiro recorde destas opções!':'Novo recorde! O anterior era '+old+'.';}}}
+    $('rErr').textContent=R.errors; $('rTime').textContent=fmtTime(time); $('rAvg').textContent=done.length?(time/done.length/1000).toFixed(1).replace('.',',')+' s':'–';
+    const miss=new Map(); R.items.filter(x=>x.tries).forEach(x=>miss.set(x.c.cifra,(miss.get(x.c.cifra)||0)+x.tries));
+    const box=$('rMissed'); box.innerHTML='';
+    if(!miss.size) box.append(h('p',{class:'empty'},'Nenhum erro. Acrescente tipos, inversões ou tente contra o relógio.'));
+    [...miss].sort((a,b)=>b[1]-a[1]).forEach(([k,c])=>box.append(h('span',{},k+(c>1?' ×'+c:''))));
+    stats(); $('done').hidden=false; $('done').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  $('clear').onclick=()=>{sel.clear();drawKeys();setFb('','');};
+  $('hint').onclick=()=>{if(!R||R.end) return; const it=cur(); if(!it.tries){it.tries=1;} R.revealed=true; setFb(it.c.cifra+' = '+noteList(it.c)+(it.c.bass?' (baixo em '+it.c.bass.sol+')':''),'err'); drawKeys(); stats();};
+  $('skip').onclick=()=>{if(!R||R.end||R.locked) return; const it=cur(); it.tries=Math.max(it.tries,1); R.errors++; it.done=true; Progress.log('acordes:cifra',false);
+    R.i++; if(!timed()&&R.i>=TOTAL){R.end=Date.now();finish();return;} R.items.push({c:genChord(it.c),tries:0}); R.revealed=false; sel.clear(); show(); stats();};
+  $('restart').onclick=newRound;
+  $('again').onclick=()=>{newRound();$('train').scrollIntoView({behavior:'smooth',block:'start'});};
+
+  // ---------- Controles ----------
+  function seg(box,items,key,{chips=false,mono=false}={}){
+    box.innerHTML='';
+    items.forEach(([v,label,title])=>{const b=h('button',{type:'button','aria-pressed':String(S[key]===v)},label);if(title)b.title=title;
+      if(chips) b.className='chip'+(mono?' mono':'');
+      b.onclick=()=>{S[key]=v;save();controls();newRound();};box.append(b);});
+  }
+  function controls(){
+    seg($('sources'),[['livre','Tipos que eu escolher'],['campo','Campo harmônico']],'source');
+    $('sourceHint').textContent=S.source==='campo'?'Os sete acordes de um tom, com o grau de cada um.':'Fundamentais sorteadas, nos tipos marcados.';
+    $('typesCtl').hidden=$('rootsCtl').hidden=S.source==='campo'; $('fieldCtl').hidden=S.source!=='campo';
+    const tb=$('types'); tb.innerHTML='';
+    TYPES.forEach(t=>{const on=S.types.includes(t.k), b=h('button',{type:'button',class:'chip','aria-pressed':String(on),title:t.name},'C'+t.suf);
+      b.onclick=()=>{const s=new Set(S.types); if(on){if(s.size<=1) return; s.delete(t.k);} else s.add(t.k); S.types=TYPES.map(x=>x.k).filter(k=>s.has(k)); save(); controls(); newRound();};
+      tb.append(b);});
+    const pb=$('presets'); pb.innerHTML='';
+    PRESETS.forEach(([l,v])=>pb.append(Object.assign(h('button',{type:'button',class:'link'},l),{onclick:()=>{S.types=v;save();controls();newRound();}})));
+    seg($('roots'),[['todas','Todas as 12'],['naturais','Só C D E F G A B']],'roots');
+    seg($('modes'),[['maior','Maior'],['menor','Menor']],'mode');
+    if(!SCALES[S.mode].tonics.includes(S.tonic)){const pc=parse(S.tonic).pc;S.tonic=SCALES[S.mode].tonics.find(t=>parse(t).pc===pc);}
+    seg($('sizes'),[['tri','Tríades'],['tet','Tétrades']],'size');
+    seg($('tonics'),SCALES[S.mode].tonics.map(t=>[t,niceT(t)]),'tonic',{chips:true,mono:true});
+    seg($('rounds'),[['count','Rodada de '+TOTAL],['clock','Contra o relógio']],'round');
+    $('roundHint').textContent=timed()?'Quantos acordes você acerta de primeira em '+CLOCK+' segundos? O recorde fica salvo.':'Vinte cifras, sem pressa.';
+    const ob=$('opts'); ob.innerHTML='';
+    [['inv','Inversões (C/E, G7/B…)',true],['formula','Mostrar o tipo do acorde',false],['names','Nomes nas teclas',false],['sound','Som',false]].forEach(([k,l,restart])=>{
+      const b=h('button',{type:'button',class:'toggle','aria-pressed':String(!!S[k])},l);
+      b.onclick=()=>{S[k]=!S[k];save();b.setAttribute('aria-pressed',String(S[k])); if(restart) newRound(); else {show();}};ob.append(b);});
+  }
+
+  midi(m=>midiOn(m),n=>{if(n) $('midiInfo').textContent='Piano MIDI conectado: toque o acorde inteiro de uma vez.';},m=>held.delete(m));
+  document.addEventListener('touchend',()=>playNotes([]),{passive:true});
+
+  Progress.track(); controls(); newRound();
+})();
+</script>
+</body>
+</html>

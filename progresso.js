@@ -4,7 +4,7 @@
 (function(){
   const KEY='tp-progresso', IDLE=60e3, STEP_MAX=20e3;
   // Chaves de todas as páginas, para exportar/importar o backup completo
-  const BACKUP_KEYS=[KEY,'leitura-cfg','leitura-fracas','leitura-recordes','ritmo-cfg','ritmo-sessao','ouvido-cfg','vista-cfg','vista-sessao','ch-theme'];
+  const BACKUP_KEYS=[KEY,'acordes-cfg','acordes-recordes','leitura-cfg','leitura-fracas','leitura-recordes','ritmo-cfg','ritmo-sessao','ouvido-cfg','vista-cfg','vista-sessao','ch-theme'];
   const EXS={
     'leitura:nota':['Leitura · Nota no teclado','leitura-partitura.html'],'leitura:nomear':['Leitura · Nomear a nota','leitura-partitura.html'],
     'leitura:escrever':['Leitura · Escrever na pauta','leitura-partitura.html'],'leitura:ditado':['Leitura · Ditado','leitura-partitura.html'],
@@ -14,7 +14,8 @@
     'ritmo:tocar':['Ritmo · Tocar o ritmo','ritmo.html'],'ritmo:ouvir':['Ritmo · Ouvir e escolher','ritmo.html'],'ritmo:valores':['Ritmo · Valores das figuras','ritmo.html'],
     'ouvido:intervalos':['Ouvido · Intervalos','treino-ouvido.html'],'ouvido:acordes':['Ouvido · Acordes','treino-ouvido.html'],
     'ouvido:graus':['Ouvido · Graus da escala','treino-ouvido.html'],'ouvido:progressoes':['Ouvido · Progressões','treino-ouvido.html'],
-    'ouvido:ditado':['Ouvido · Ditado melódico','treino-ouvido.html']
+    'ouvido:ditado':['Ouvido · Ditado melódico','treino-ouvido.html'],
+    'acordes:cifra':['Acordes · Cifra no teclado','acordes.html']
   };
 
   // Formato: {v:2, id, goal, best, days:{'AAAA-MM-DD':{ms,n,ok,ex:{exercício:{n,ok,ms}}}}, others:{id:{days}}}

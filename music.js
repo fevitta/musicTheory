@@ -95,10 +95,10 @@
       set(o){Object.assign(st,o);draw();},
       flash(m,color){fl={m,color,t:Date.now()};draw();setTimeout(()=>{if(fl&&Date.now()-fl.t>=330){fl=null;draw();}},350);}};
   }
-  // Piano digital (Web MIDI): chama onNote(nota, evento) a cada tecla apertada; onStatus(n) com o nº de entradas
-  function midi(onNote,onStatus){
+  // Piano digital (Web MIDI): chama onNote(nota, evento) a cada tecla apertada, onOff(nota) ao soltar; onStatus(n) com o nº de entradas
+  function midi(onNote,onStatus,onOff){
     if(!navigator.requestMIDIAccess) return;
-    navigator.requestMIDIAccess().then(a=>{const hook=()=>{let n=0;a.inputs.forEach(inp=>{n++;inp.onmidimessage=e=>{const [st,note,vel]=e.data;if((st&0xf0)===0x90&&vel>0)onNote(note,e);};});if(onStatus)onStatus(n);};
+    navigator.requestMIDIAccess().then(a=>{const hook=()=>{let n=0;a.inputs.forEach(inp=>{n++;inp.onmidimessage=e=>{const [st,note,vel]=e.data,t=st&0xf0;if(t===0x90&&vel>0)onNote(note,e);else if(onOff&&(t===0x80||t===0x90))onOff(note,e);};});if(onStatus)onStatus(n);};
       hook();a.onstatechange=hook;}).catch(()=>{});
   }
 
