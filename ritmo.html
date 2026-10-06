@@ -265,7 +265,8 @@ details summary{cursor:pointer;font-weight:600}
       const r=h('button',{class:'btn',type:'button',style:'margin-left:auto;align-self:center'},'Zerar'); r.onclick=()=>{sess={n:0,sum:0,dev:0,devN:0};store('ritmo-sessao',sess);showStats();}; stats.append(r);}
     const fmtDev=ms=>Math.abs(ms)<15?'no tempo':(ms>0?'+':'−')+Math.abs(Math.round(ms))+' ms '+(ms>0?'(atrasado)':'(adiantado)');
     // Em telas estreitas, um compasso só (3/4 e 4/4) para a partitura não ficar miúda
-    function newRhythm(){ev=genRhythm(root.clientWidth<560&&S.beats>=3?1:2); draw(); fb.textContent=''; fb.className='feedback'; countDots(-1,'Aperte Começar. O metrônomo conta '+S.beats+' tempos antes.');}
+    const nextRhythm=Music.fresh(()=>genRhythm(root.clientWidth<560&&S.beats>=3?1:2),heard,6,'tocar');
+    function newRhythm(){ev=nextRhythm(); draw(); fb.textContent=''; fb.className='feedback'; countDots(-1,'Aperte Começar. O metrônomo conta '+S.beats+' tempos antes.');}
     function draw(res){drawRhythm(svg,ev,res?{colors:res.colors,taps:res.taps,expected:res.expected}:{taps:[],expected:[]});}
     function countDots(k,msg){count.innerHTML=''; if(msg){count.append(h('span',{class:'msg'},msg));return;}
       for(let i=0;i<S.beats;i++) count.append(h('span',{class:i===k?'on':''},String(i+1)));}
@@ -324,7 +325,7 @@ details summary{cursor:pointer;font-weight:600}
 
   // ---------- Ouvir e escolher ----------
   function Ouvir(root){
-    const TOTAL=10, measures=S.beats===4?1:2;
+    const TOTAL=10, measures=S.beats===4?1:2, nextRhythm=Music.fresh(()=>genRhythm(measures),heard,6,'ouvir');
     let q=null, n=0, right=0, answered=false, playing=false;
     const stats=h('div',{class:'stats'}), fb=h('p',{class:'feedback','aria-live':'polite'}), opts=h('div',{class:'opts'});
     const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
@@ -348,7 +349,7 @@ details summary{cursor:pointer;font-weight:600}
     }
     function next(){
       if(n>=TOTAL) return summary();
-      const base=genRhythm(measures), all=shuffle(variants(base)); q={base,all}; answered=false;
+      const base=nextRhythm(), all=shuffle(variants(base)); q={base,all}; answered=false;
       opts.innerHTML=''; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       all.forEach((v,i)=>{const s=document.createElementNS(NS,'svg');s.setAttribute('class','score');drawRhythm(s,v,{measures});
         const b=h('button',{class:'opt',type:'button','aria-label':'Opção '+(i+1)},h('span',{class:'n'},String(i+1)),s);
@@ -375,6 +376,11 @@ details summary{cursor:pointer;font-weight:600}
   // ---------- Valores das figuras ----------
   function Valores(root){
     const TOTAL=10; let n=0, right=0, answered=false;
+    // Monte de perguntas: cada figura (e pausa) em "quanto vale" e "qual o nome", e cada espaço para completar o compasso
+    const L=S.beats*4, lv=S.level, Q=[];
+    [[figsFor(lv),false],[S.rests?restsFor(lv):[],true]].forEach(([ds,rest])=>ds.forEach(d=>['tempos','nome'].forEach(kind=>Q.push({kind,d,rest}))));
+    [4,8].concat(L>=12?[12]:[]).concat(lv>=2?[2]:[]).concat(lv>=3&&L>=8?[6,1,3]:[]).filter(g=>g<L).forEach(g=>Q.push({kind:'completa',g},{kind:'completa',g}));
+    const bag=Music.bagFor('valores',[S.beats,S.level,S.rests],()=>Q,q=>q.kind==='completa'?'c'+q.g:(q.rest?'r':'n')+q.d);
     const stats=h('div',{class:'stats'}), body=h('div',{style:'display:flex;flex-direction:column;gap:14px'}), fb=h('p',{class:'feedback','aria-live':'polite'});
     const bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,body,fb,h('div',{class:'row'},bNext)); root.append(card);
@@ -396,21 +402,17 @@ details summary{cursor:pointer;font-weight:600}
     }
     function next(){
       if(n>=TOTAL) return summary();
-      const kind=rnd(['tempos','tempos','nome','nome','completa','completa']);
-      const useRest=S.rests&&Math.random()<0.3&&kind!=='completa';
-      const pool=useRest?restsFor(S.level):figsFor(S.level);
+      const {kind,d,rest:useRest,g}=bag.next();
       if(kind==='tempos'){
-        const d=rnd(pool), vals=[...new Set([...figsFor(3),16].map(x=>x))].filter(x=>x!==d);
+        const vals=[...new Set([...figsFor(3),16].map(x=>x))].filter(x=>x!==d);
         const opts=shuffle([d,...shuffle(vals).slice(0,3)]);
         ask('Quantos tempos vale '+(useRest?'esta pausa':'esta figura')+'? (semínima = 1 tempo)',h('div',{class:'fig'},figureSvg(d,useRest)),opts.map(beatWord),opts.indexOf(d),why(d,useRest));
       } else if(kind==='nome'){
-        const d=rnd(pool), names=useRest?REST_NAMES:NAMES, others=shuffle(Object.keys(names).map(Number).filter(x=>x!==d)).slice(0,3);
+        const names=useRest?REST_NAMES:NAMES, others=shuffle(Object.keys(names).map(Number).filter(x=>x!==d)).slice(0,3);
         const opts=shuffle([d,...others]);
         ask('Qual é o nome '+(useRest?'desta pausa':'desta figura')+'?',h('div',{class:'fig'},figureSvg(d,useRest)),opts.map(x=>names[x]),opts.indexOf(d),why(d,useRest));
       } else {
-        const L=S.beats*4, lv=S.level;
-        const gaps=[4,8].concat(L>=12?[12]:[]).concat(lv>=2?[2]:[]).concat(lv>=3&&L>=8?[6,1,3]:[]).filter(g=>g<L);
-        const g=rnd(gaps); let ev;
+        const L=S.beats*4; let ev;
         // O que vem antes do espaço termina no ponto certo do tempo
         const tail={2:[[2]],1:[[2],[1]],3:[[1]],6:[[2]]}[g]||[];
         const tailLen=tail.reduce((s,[d])=>s+d,0), head=L-g-tailLen;

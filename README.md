@@ -54,7 +54,7 @@ Em breve: tocar e conferir (escalas e acordes pelo piano via MIDI).
 ## Arquivos compartilhados
 
 - **`style.css`:** cores (claro/escuro), tipografia e controles comuns (chips, botões, etiquetas de função). Toda página nova deve incluí-lo.
-- **`music.js`:** nomes e grafia de notas, áudio (Web Audio, com clique de metrônomo), teclado em SVG (simples e tocável) e piano MIDI, expostos em `window.Music`.
+- **`music.js`:** nomes e grafia de notas, áudio (Web Audio, com clique de metrônomo), teclado em SVG (simples e tocável), piano MIDI e o sorteio sem repetição dos treinos (`bag`, `bagFor`, `fresh`), expostos em `window.Music`.
 - **`notacao.js`:** notação e ritmo compartilhados por Leitura, Ritmo e Primeira Vista: desenho das figuras em SVG, células rítmicas por nível e grupos de hastes unidas, expostos em `window.Notacao`.
 - **`progresso.js`:** registro do progresso em `localStorage` (chave `tp-progresso`, um resumo por dia; o histórico importado de outros aparelhos fica separado por aparelho e é somado na exibição). Páginas de treino chamam `Progress.track()` uma vez e `Progress.log('pagina:exercicio', acertou)` a cada resposta; toda página com `.top-bar` mostra o resumo do dia.
 - **`versao.js`** e **`versao.json`:** verificação de nova versão. A página compara a versão com que foi carregada com a publicada em `versao.json` e, se mudou, oferece “Atualizar”. **A cada publicação, rode `scripts/nova-versao.sh`** (atualiza os dois arquivos) e inclua em `FILES`, dentro de `versao.js`, qualquer arquivo novo do site.

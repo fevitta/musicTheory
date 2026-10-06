@@ -161,6 +161,9 @@ section{display:flex;flex-direction:column;gap:12px}
     return ev;
   }
 
+  // Evita repetir uma das últimas melodias
+  const nextMelody=Music.fresh(()=>genMelody(),ev=>ev.map(e=>e.start+':'+(e.rest?'r':e.m)).join(),5,'vista');
+
   // ---------- Desenho ----------
   const SP=10, STEP=5, FA_DY=25, ACC_DY={'1':4,'-1':2,'0':4};
   const ACC_GLYPH={'1':'♯','-1':'♭','0':'♮'}, {headPath,wholePath,REST_GLYPH,baseDur}=Notacao;
@@ -251,7 +254,7 @@ section{display:flex;flex-direction:column;gap:12px}
   const nameOf=e=>SOL[e.letter]+acc(e.acc)+e.oct;
 
   function newExercise(){
-    stopRun(); K=setup(); EV=genMelody(); W={pos:0,tries:{},firstOk:0,start:null,done:false};
+    stopRun(); K=setup(); EV=nextMelody(); W={pos:0,tries:{},firstOk:0,start:null,done:false};
     const ms=K.pool.map(n=>n.m); kb.set({lo:Math.min(...ms)-2,hi:Math.max(...ms)+2,names:S.names,fills:new Map(),marks:new Set()});
     $('fb').textContent=''; $('fb').className='feedback';
     if(S.play==='esperar'){countMsg('Toque a nota marcada em azul. A partitura espera por você.'); draw({cur:noteIdx()[0]});}

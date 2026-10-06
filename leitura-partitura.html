@@ -259,17 +259,24 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
 
   // ---------- Itens ----------
   const mkItem=notes=>({notes,clef:notes[0].clef,tries:0,done:false,got:new Set()});
-  function genItem(prev){
-    const c=rnd(clefsOn()), P=K.pools[c];
+  // Monte com tudo o que pode sair (notas, intervalos ou acordes, nas pautas escolhidas): cada um sai uma vez antes de repetir
+  let BAG=null;
+  function newBag(){BAG=Music.bagFor('leitura',[S.ex,S.clef,S.mode,S.tonic,S.range],bagItems,ns=>ns.map(n=>n.clef+n.d).join());}
+  function bagItems(){
+    const items=[];
+    for(const c of clefsOn()){const P=K.pools[c];
+      if(S.ex==='intervalo'){for(let i=0;i<P.length;i++) for(let n=2;n<=8;n++) if(i+n-1<P.length) items.push([P[i],P[i+n-1]]);}
+      else if(S.ex==='acorde'){for(let i=0;i+4<P.length;i++) items.push([P[i],P[i+2],P[i+4]]);}
+      else P.forEach(n=>items.push([n]));}
+    return items;
+  }
+  function genItem(){
     const W=R.review?weakList():[]; // na revisão; se todas já foram acertadas, segue com notas sorteadas
-    if(W.length){const tot=W.reduce((s,w)=>s+w.c,0);let n;
-      do{let x=Math.random()*tot;n=(W.find(w=>(x-=w.c)<0)||W[0]).n;}while(W.length>1&&prev&&weakKey(n)===weakKey(prev.notes[0]));
-      return mkItem([n]);}
-    if(S.ex==='intervalo'){for(;;){const i=Math.floor(Math.random()*P.length), n=rnd([2,3,3,4,4,5,5,6,6,7,8]), j=i+n-1;
-      if(j<P.length) return mkItem([P[i],P[j]]);}}
-    if(S.ex==='acorde'){const i=Math.floor(Math.random()*(P.length-4));return mkItem([P[i],P[i+2],P[i+4]]);}
-    let n; do{n=rnd(P);}while(P.length>1&&prev&&prev.clef===c&&n.d===prev.notes[0].d);
-    return mkItem([chromatize(n)]);
+    if(W.length){
+      // Mais erros, mais chance de sair; evita as que saíram há pouco
+      const k=Math.min(3,W.length-1), recent=k?R.items.slice(-k).map(it=>weakKey(it.notes[0])):[], pool=W.filter(w=>!recent.includes(weakKey(w.n)));
+      const tot=pool.reduce((s,w)=>s+w.c,0); let x=Math.random()*tot; return mkItem([(pool.find(w=>(x-=w.c)<0)||pool[0]).n]);}
+    const ns=BAG.next(); return mkItem(ns.length===1?[chromatize(ns[0])]:ns);
   }
   // Sequência: melodia por graus conjuntos e saltos pequenos, sempre na mesma pauta
   function genGroup(){
@@ -281,12 +288,12 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   }
   const total=()=>timed()?Infinity:R.review?30:EXS[S.ex].total;
   function ensure(n){while(R.items.length<Math.min(n,total())){
-    if(S.ex==='sequencia'&&!R.review) R.items.push(...genGroup()); else R.items.push(genItem(R.items[R.items.length-1]));}}
+    if(S.ex==='sequencia'&&!R.review) R.items.push(...genGroup()); else R.items.push(genItem());}}
 
   // ---------- Rodada ----------
   let K=null, R=null, clockTimer=null;
   function newRound(review=false){
-    K=setup();
+    K=setup(); newBag();
     R={items:[],i:0,errors:0,start:null,end:null,revealed:false,review:review&&SINGLE.includes(S.ex)&&weakList().length>0,ghost:null,wrong:null};
     ensure(40);
     $('done').hidden=true; $('train').hidden=false;

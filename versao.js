@@ -2,7 +2,7 @@
 // Checa ao abrir, ao voltar para o app (depois de 5 min) e a cada 30 min. Se houver versão nova, mostra um aviso;
 // "Atualizar" baixa de novo os arquivos do site (sem cache) e recarrega. A cada publicação, rode scripts/nova-versao.sh.
 (function(){
-  const VERSION='2026.10.06.0002';
+  const VERSION='2026.10.06.0031';
   const FILES=['index.html','campo-harmonico.html','descobrir-tom.html','leitura-partitura.html','primeira-vista.html','ritmo.html',
     'treino-ouvido.html','progresso.html','acordes.html','style.css','theme.js','music.js','notacao.js','progresso.js','versao.js','manifest.webmanifest'];
   const EVERY=30*60e3, ON_RETURN=5*60e3;

@@ -102,5 +102,49 @@
       hook();a.onstatechange=hook;}).catch(()=>{});
   }
 
-  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click,keyboard,midi};
+  // ---------- Sorteio sem repetição ----------
+  // Como um baralho: cada item sai o mesmo número de vezes, em ordem embaralhada. Com 4 itens ou mais, cada um sai
+  // uma vez por monte e, ao embaralhar de novo, os que saíram há pouco não voltam logo. Com 2 ou 3 itens (ex.: maior
+  // ou menor), o monte tem várias cópias de cada, para a ordem não ficar previsível, e nunca sai o mesmo 3 vezes seguidas.
+  // key(item) diz quando dois itens são "o mesmo" (padrão: JSON).
+  function bag(items,key=x=>JSON.stringify(x)){
+    const u=items.length, small=u<4, copies=small?Math.ceil(8/Math.max(1,u)):1, gap=small?0:Math.min(8,Math.floor(u/2));
+    let deck=[], recent=[];
+    const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+    const swapOut=(i,bad)=>{const j=deck.findIndex((x,jj)=>jj!==i&&!bad(key(x))); if(j>=0)[deck[i],deck[j]]=[deck[j],deck[i]]; return j>=0;};
+    return {
+      next(){
+        if(!u) return undefined;
+        if(!deck.length){
+          deck=shuffle([].concat(...Array(copies).fill(items)));
+          // o deck sai do fim: quem saiu há pouco vai para o começo (sai por último)
+          for(let k=0;k<gap;k++){const i=deck.length-1-k; if(i<=0) break; if(recent.includes(key(deck[i]))) swapOut(i,kk=>recent.includes(kk));}
+        }
+        let i=deck.length-1;
+        if(small&&u>1&&recent.length>=2&&recent.slice(-2).every(k=>k===key(deck[i]))){
+          const k0=key(deck[i]);
+          // só sobrou o mesmo no monte: emenda o próximo monte por cima e tira um diferente dele
+          if(!swapOut(i,kk=>kk===k0)){deck=deck.concat(shuffle([].concat(...Array(copies).fill(items)))); swapOut(deck.length-1,kk=>kk===k0);}
+        }
+        const x=deck.pop(); recent.push(key(x)); if(recent.length>Math.max(gap,2)) recent.shift(); return x;
+      },
+      size:u
+    };
+  }
+  // O mesmo monte continua entre rodadas enquanto as opções (opts) não mudarem; mudou, embaralha um novo
+  const bags=new Map();
+  function bagFor(name,opts,makeItems,key){
+    const sig=JSON.stringify(opts), b=bags.get(name);
+    if(b&&b.sig===sig) return b.bag;
+    const bag_=bag(makeItems(),key); bags.set(name,{sig,bag:bag_}); return bag_;
+  }
+  // Sorteio aleatório que evita os últimos `memory` resultados (para espaços grandes, como ritmos e melodias).
+  // Com `name`, a memória continua entre rodadas.
+  const memories=new Map();
+  function fresh(gen,key=x=>JSON.stringify(x),memory=4,name=null,tries=30){
+    const recent=name?(memories.get(name)||memories.set(name,[]).get(name)):[];
+    return ()=>{let x,k,t=0; do{x=gen();k=key(x);}while(recent.includes(k)&&t++<tries); recent.push(k); if(recent.length>memory) recent.shift(); return x;};
+  }
+
+  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click,keyboard,midi,bag,bagFor,fresh};
 })();

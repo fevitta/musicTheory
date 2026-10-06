@@ -164,7 +164,8 @@ section{display:flex;flex-direction:column;gap:12px}
   }
 
   // ---------- Tom e cadência ----------
-  const keyOf=(mode,rand)=>{const T=SCALES[mode].tonics, t=rand?rnd(T):'C', pc=parse(t).pc;
+  // tom: nome da tônica, true para sortear, ou nada para Dó
+  const keyOf=(mode,tom)=>{const T=SCALES[mode].tonics, t=typeof tom==='string'?tom:tom?rnd(T):'C', pc=parse(t).pc;
     return {name:t,mode,pc,t:55+((pc-7+12)%12),label:niceT(t)+' '+SCALES[mode].name};};  // tônica entre Sol3 e Fá♯4
   function cadence(k,at=0){
     const t=k.t, m=k.mode==='menor'?3:4, mi=k.mode==='menor'?8:9;
@@ -211,9 +212,11 @@ section{display:flex;flex-direction:column;gap:12px}
   }
 
   // ---------- Exercícios ----------
+  // Montes (music.js): cada intervalo, acorde, grau ou tom sai uma vez antes de repetir
   function Intervalos(root){
+    const bag=Music.bagFor('ivs',[S.ivs,S.ivDir],()=>S.ivs.flatMap(iv=>(S.ivDir==='mix'?['sobe','desce','junto']:[S.ivDir]).map(dir=>({iv,dir}))),x=>x.iv);
     Quiz(root,()=>{
-      const s=rnd(S.ivs), base=rint(52,79-s), dir=S.ivDir==='mix'?rnd(['sobe','desce','junto']):S.ivDir;
+      const {iv:s,dir}=bag.next(), base=rint(52,79-s);
       const notes=iv=>dir==='desce'?[base+iv,base]:[base,base+iv];
       const play=iv=>dir==='junto'?playNotes(notes(iv),{dur:1.6}):playNotes(notes(iv),{arp:0.7,dur:1.3});
       const lab=k=>IVS.find(i=>i[0]===k)[2];
@@ -222,8 +225,9 @@ section{display:flex;flex-direction:column;gap:12px}
     });
   }
   function Acordes(root){
+    const bag=Music.bagFor('chs',S.chs,()=>S.chs);
     Quiz(root,()=>{
-      const pick=rnd(S.chs), c=CHS.find(x=>x.k===pick), root_=rint(48,58), inv=S.inv?rint(0,c.iv.length-1):0, arp=S.chDir==='arpejo'||(S.chDir==='mix'&&Math.random()<0.5);
+      const pick=bag.next(), c=CHS.find(x=>x.k===pick), root_=rint(48,58), inv=S.inv?rint(0,c.iv.length-1):0, arp=S.chDir==='arpejo'||(S.chDir==='mix'&&Math.random()<0.5);
       const voice=ch=>{const ms=ch.iv.map(x=>root_+x);for(let k=0;k<Math.min(inv,ms.length-1);k++) ms.push(ms.shift()+12);return ms;};
       const play=ch=>arp?playNotes(voice(ch),{arp:0.35,dur:1.8}):playNotes(voice(ch),{dur:1.8});
       const lab=k=>CHS.find(x=>x.k===k).name;
@@ -232,9 +236,10 @@ section{display:flex;flex-direction:column;gap:12px}
     });
   }
   function Graus(root){
+    const grBag=Music.bagFor('grs',S.grs,()=>S.grs);
     let k=keyOf(S.grMode,S.randKey);
     Quiz(root,(i)=>{
-      const deg=rnd(S.grs), iv=SCALES[k.mode].iv, m=k.t+iv[deg-1];
+      const deg=grBag.next(), iv=SCALES[k.mode].iv, m=k.t+iv[deg-1];
       const resolution=()=>{const steps=deg<=4?[...Array(deg).keys()].reverse().map(j=>k.t+iv[j]):[...Array(9-deg).keys()].map(j=>deg-1+j>=7?k.t+12:k.t+iv[deg-1+j]);return steps;};
       return {answer:deg,keyLabel:k.label,labelOf:g=>g+' ('+degName(k,g)+')',
         options:S.grs.map(g=>({key:g,label:String(g),sub:degName(k,g)})),
@@ -259,7 +264,8 @@ section{display:flex;flex-direction:column;gap:12px}
   }
   function Progressoes(root){
     let n=0,right=0,q=null,filled=[],answered=false,timer=0; const conf=new Map();
-    const Sc=SCALES[S.prMode], pool=PR_POOLS[S.prPool][1];
+    const Sc=SCALES[S.prMode], pool=PR_POOLS[S.prPool][1], keys=Music.bagFor('tons-pr',S.prMode,()=>Sc.tonics);
+    const genDegs=Music.fresh(()=>{const degs=[0]; while(degs.length<4){const d=rnd(pool);if(d!==degs[degs.length-1]) degs.push(d);} return degs;},d=>d.join(),5,'prog');
     const stats=h('div',{class:'stats'}), slots=h('div',{class:'slots'}), grid=h('div',{class:'answers'}), fb=h('p',{class:'feedback','aria-live':'polite'});
     const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir de novo'), bUndo=h('button',{class:'btn',type:'button'},'Apagar'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,bUndo),slots,grid,fb,h('div',{class:'row'},bNext)); root.append(card);
@@ -270,7 +276,7 @@ section{display:flex;flex-direction:column;gap:12px}
       playNotes([bass,...up],{dur:1.05,at:i*1.1});});}
     function next(){
       clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
-      const k=keyOf(S.prMode,true), degs=[0]; while(degs.length<4){const d=rnd(pool);if(d!==degs[degs.length-1]) degs.push(d);}
+      const k=keyOf(S.prMode,keys.next()), degs=genDegs();
       q={k,degs}; filled=[0]; answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       grid.innerHTML=''; pool.forEach(d=>{const b=h('button',{type:'button',class:'ans'},h('b',{},Sc.roman[d]));b.onclick=()=>pick(d);grid.append(b);});
       draw(); showStats(); play();
@@ -298,14 +304,14 @@ section{display:flex;flex-direction:column;gap:12px}
     const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir de novo'), bCad=h('button',{class:'btn',type:'button'},'Ouvir o tom'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,bCad),slots,fb,h('div',{class:'kbd-scroll'},svg),h('div',{class:'row'},bNext)); root.append(card);
     const kb=keyboard(svg,m=>press(m));
-    const Sc=SCALES[S.diMode];
+    const Sc=SCALES[S.diMode], keys=Music.bagFor('tons-di',S.diMode,()=>Sc.tonics), top=S.diRange==='cinco'?4:7;
+    const genDegs=Music.fresh(()=>{const degs=[0]; for(let i=1;i<S.diLen;i++){let d;do{d=degs[i-1]+rnd([-2,-1,-1,1,1,2,3,-3]);}while(d<0||d>top||d===degs[i-1]);degs.push(d);} return degs;},d=>d.join(),5,'ditado');
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
       add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Sem erro',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
     const play=()=>playNotes(q.ms,{arp:0.6,dur:0.7});
     function next(){
       clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf,'Todas as melodias sem erro. Aumente o número de notas ou use a oitava inteira.');
-      const k=keyOf(S.diMode,true), t=60+k.pc, top=S.diRange==='cinco'?4:7;
-      const degs=[0]; for(let i=1;i<S.diLen;i++){let d;do{d=degs[i-1]+rnd([-2,-1,-1,1,1,2,3,-3]);}while(d<0||d>top||d===degs[i-1]);degs.push(d);}
+      const k=keyOf(S.diMode,keys.next()), t=60+k.pc, degs=genDegs();
       const ms=degs.map(d=>t+(d===7?12:Sc.iv[d]));
       q={k,t,degs,ms,names:degs.map(d=>d===7?degName(k,1):degName(k,d+1))}; pos=1; errs=0;
       fb.textContent='Começa na tônica ('+q.names[0]+'). Toque as outras '+(S.diLen-1)+' notas.'; fb.className='feedback'; bNext.hidden=true;
