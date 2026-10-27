@@ -100,7 +100,7 @@ section{display:flex;flex-direction:column;gap:12px}
 
 <script>
 (function(){
-  const {LET,NAT,SOL,acc,parse,niceT,spellAt,playNotes,audio,tone,click,keyboard,midi}=Music;
+  const {LET,NAT,SOL,acc,parse,niceT,spellAt,playNotes,audio,latency,tone,click,keyboard,midi}=Music;
   const $=id=>document.getElementById(id);
   const NS='http://www.w3.org/2000/svg';
   function el(parent,tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;parent.appendChild(e);return e;}
@@ -248,13 +248,13 @@ section{display:flex;flex-direction:column;gap:12px}
   // ---------- Estado ----------
   let K=null, EV=[], W=null, run=null, raf=0;
   let sess=load('vista-sessao',{n:0,sum:0});
-  const kb=keyboard($('piano'),(m,e)=>press(m,e));
+  const kb=keyboard($('piano'),(m,e)=>press(m,e),{instant:()=>!!run&&!run.listen});
   midi((m,e)=>press(m,e),n=>{if(n) $('midiInfo').textContent='Piano MIDI conectado.';});
   const noteIdx=()=>EV.map((e,i)=>e.rest?-1:i).filter(i=>i>=0);
   const nameOf=e=>SOL[e.letter]+acc(e.acc)+e.oct;
 
   function newExercise(){
-    stopRun(); K=setup(); EV=nextMelody(); W={pos:0,tries:{},firstOk:0,start:null,done:false};
+    stopRun(); Music.cancel(); K=setup(); EV=nextMelody(); W={pos:0,tries:{},firstOk:0,start:null,done:false};
     const ms=K.pool.map(n=>n.m); kb.set({lo:Math.min(...ms)-2,hi:Math.max(...ms)+2,names:S.names,fills:new Map(),marks:new Set()});
     $('fb').textContent=''; $('fb').className='feedback';
     if(S.play==='esperar'){countMsg('Toque a nota marcada em azul. A partitura espera por você.'); draw({cur:noteIdx()[0]});}
@@ -265,8 +265,9 @@ section{display:flex;flex-direction:column;gap:12px}
     add('Exercícios',String(sess.n)); add(S.play==='tempo'?'Precisão média':'Acertos de primeira',sess.n?Math.round(sess.sum/sess.n)+'%':'–','ok');
     const z=h('button',{class:'btn',type:'button',style:'margin-left:auto;align-self:center'},'Zerar'); z.onclick=()=>{sess={n:0,sum:0};store('vista-sessao',sess);stats();}; s.append(z);}
   function record(pct){sess.n++;sess.sum+=pct;store('vista-sessao',sess);stats();}
-  function countMsg(t){const c=$('count');c.innerHTML='';c.append(h('span',{class:'msg'},t));}
-  function countBeat(k){const c=$('count');c.innerHTML='';for(let i=0;i<S.beats;i++) c.append(h('span',{class:i===k?'on':''},String(i+1)));}
+  let beatShown=null; // só refaz a contagem quando o tempo muda (o laço de animação chama a cada quadro)
+  function countMsg(t){beatShown=null;const c=$('count');c.innerHTML='';c.append(h('span',{class:'msg'},t));}
+  function countBeat(k){if(k===beatShown) return; beatShown=k;const c=$('count');c.innerHTML='';for(let i=0;i<S.beats;i++) c.append(h('span',{class:i===k?'on':''},String(i+1)));}
   function buttons(){
     const b=$('btns'); b.innerHTML=''; const btn=(t,f,p)=>{const x=h('button',{class:'btn'+(p?' primary':''),type:'button'},t);x.onclick=f;b.append(x);return x;};
     if(S.play==='tempo'){btn('Começar',()=>go(false),true); btn('Ouvir',()=>go(true));}
@@ -296,10 +297,10 @@ section{display:flex;flex-direction:column;gap:12px}
       if(W.tries[i]>=3) kb.set({marks:new Set([n.m])});
     }
   }
-  function listen(){const b=60/S.bpm; EV.forEach(e=>{if(!e.rest) playNotes([e.m],{dur:Math.min(1.2,e.dur*b/4),at:e.start*b/4});});}
+  function listen(){Music.cancel(); const b=60/S.bpm; EV.forEach(e=>{if(!e.rest) playNotes([e.m],{dur:Math.min(1.2,e.dur*b/4),at:e.start*b/4});});}
 
   // ---------- Modo "No tempo" ----------
-  function tapTime(e){const c=audio(); const age=e&&e.timeStamp?(performance.now()-e.timeStamp)/1000:0; return c.currentTime-(age>0&&age<0.5?age:0)-(run?run.lat:0);}
+  function tapTime(e){const c=audio(); const age=e&&e.timeStamp?(performance.now()-e.timeStamp)/1000:0; return c.currentTime-(age>0&&age<0.5?age:0)-latency(c);}
   function stopRun(){cancelAnimationFrame(raf); run=null;}
   function go(listenOnly){
     if(run) return; const c=audio(); if(!c) return; const b=60/S.bpm, L=S.beats*4;
@@ -307,10 +308,10 @@ section{display:flex;flex-direction:column;gap:12px}
     for(let k=0;k<S.beats;k++) click(T-(S.beats-k)*b,{strong:k===0});
     if(S.metro||listenOnly) for(let k=0;k*4<end;k++) click(T+k*b,{strong:k%S.beats===0,vol:.4});
     if(listenOnly) EV.forEach(e=>{if(!e.rest) tone(e.m,T+e.start*b/4,Math.min(1,e.dur*b/4*0.95),0.22);});
-    run={T,b,end:T+end*b/4,c,lat:c.outputLatency||c.baseLatency||0,listen:listenOnly,presses:[]};
+    run={T,b,end:T+end*b/4,c,listen:listenOnly,presses:[]};
     $('fb').textContent=''; $('fb').className='feedback'; draw({taps:[],expected:[]});
     const ph=el($('score'),'line',{x1:0,x2:0,y1:0,y2:0,stroke:'var(--accent)','stroke-width':2,opacity:0});
-    const tick=()=>{if(!run) return; const now=c.currentTime-run.lat, u=(now-run.T)/(b/4);
+    const tick=()=>{if(!run) return; const now=c.currentTime-latency(c), u=(now-run.T)/(b/4);
       if(now<run.T) countBeat(Math.floor((now-(run.T-S.beats*b))/b));
       else {countBeat(Math.floor(u/4)%S.beats); const ln=Math.min(G.lines-1,lineOf(Math.max(0,u))), Y0=Y0of(ln);
         ph.setAttribute('x1',xOf(u));ph.setAttribute('x2',xOf(u));ph.setAttribute('y1',Y0-12*STEP);ph.setAttribute('y2',Y0+4*STEP);ph.setAttribute('opacity',1);}

@@ -15,16 +15,24 @@
 
   // ---------- Áudio ----------
   let ctx=null;
-  function ac(){ if(!ctx){const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C();} if(ctx.state==='suspended') ctx.resume(); return ctx; }
+  // 'interrupted': iPhone depois de uma ligação ou de travar a tela
+  function ac(){ if(!ctx){const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C();} if(ctx.state==='suspended'||ctx.state==='interrupted') ctx.resume(); return ctx; }
+  // Atraso entre o relógio de áudio e o som sair no alto-falante. Leia na hora em que for usar: logo que o áudio
+  // liga, o navegador ainda informa 0 e só depois o valor real.
+  const latency=c=>(c.outputLatency||0)+(c.baseLatency||0);
+  // Sons agendados para depois (metrônomo, melodia, progressão): cancel() cala os que ainda não começaram
+  const pending=new Set();
+  function track(g,o,t){const x={g,t}; pending.add(x); o.onended=()=>pending.delete(x);}
+  function cancel(){if(!ctx) return; const t=ctx.currentTime; pending.forEach(x=>{if(x.t>t){x.g.disconnect(); pending.delete(x);}});}
   function tone(m,t0,dur,vol){
     const c=ac(); if(!c) return;
-    const f=440*Math.pow(2,(m-69)/12);
-    const g=c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+0.012); g.gain.exponentialRampToValueAtTime(vol*0.35,t0+0.35); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    const f=440*Math.pow(2,(m-69)/12), dk=Math.min(0.35,dur*0.6);  // nota curta: a queda termina antes do fim, não depois
+    const g=c.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+0.012); g.gain.exponentialRampToValueAtTime(vol*0.35,t0+dk); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
     const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=Math.min(4200,f*6);
     const o1=c.createOscillator(); o1.type='triangle'; o1.frequency.value=f;
     const o2=c.createOscillator(); o2.type='sine'; o2.frequency.value=f*2; const g2=c.createGain(); g2.gain.value=0.25;
     o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(c.destination);
-    o1.start(t0); o2.start(t0); o1.stop(t0+dur+0.05); o2.stop(t0+dur+0.05);
+    o1.start(t0); o2.start(t0); o1.stop(t0+dur+0.05); o2.stop(t0+dur+0.05); track(g,o1,t0);
   }
   // Clique de metrônomo (ou toque de ritmo) no instante t do relógio de áudio
   function click(t,{strong=false,vol=1,freq}={}){
@@ -32,11 +40,16 @@
     const o=c.createOscillator(), g=c.createGain(), f=freq||(strong?1760:1175);
     o.type='triangle'; o.frequency.setValueAtTime(f,t); o.frequency.exponentialRampToValueAtTime(f*0.6,t+0.05);
     g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.35*vol,t+0.002); g.gain.exponentialRampToValueAtTime(0.0001,t+0.07);
-    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.08);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+0.08); track(g,o,t);
   }
+  // Notas pedidas na mesma tarefa (os acordes de uma progressão, as notas de uma melodia) contam `at` a partir do mesmo
+  // instante: o relógio de áudio anda enquanto o laço agenda, e ler currentTime a cada chamada atrasava os compassos seguintes.
+  let origin=null;
+  const now=c=>{if(origin===null){origin=c.currentTime; queueMicrotask(()=>{origin=null;});} return origin;};
+  // Devolve o instante (relógio de áudio) da primeira nota
   function playNotes(ms,{arp=0,dur=1.6,at=0}={}){
-    const c=ac(); if(!c) return; const t=c.currentTime+0.03+at; const v=0.22/Math.sqrt(ms.length);
-    ms.forEach((m,i)=>tone(m,t+i*arp,dur,v));
+    const c=ac(); if(!c) return; const t=now(c)+0.03+at; const v=0.22/Math.sqrt(ms.length);
+    ms.forEach((m,i)=>tone(m,t+i*arp,dur,v)); return t;
   }
 
   // ---------- Teclado simples ----------
@@ -73,7 +86,8 @@
   // ---------- Teclado interativo ----------
   // Tocável (pointerdown chama onPress). set({lo,hi,names,fills,marks}) redesenha:
   // fills = Map(m → cor de preenchimento), marks = Set(m) com contorno de destaque.
-  function keyboard(svg,onPress){
+  // instant() verdadeiro (ex.: tocando no tempo do metrônomo): o toque conta na hora mesmo num teclado que rola.
+  function keyboard(svg,onPress,{instant}={}){
     const NS='http://www.w3.org/2000/svg', st={lo:48,hi:71,names:false,fills:new Map(),marks:new Set()}; let fl=null;
     const el=(tag,attrs,text)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;svg.appendChild(e);return e;};
     function draw(){
@@ -97,7 +111,7 @@
     const touches=new Map();
     const scrolls=()=>{const sc=svg.parentElement;return sc&&sc.scrollWidth>sc.clientWidth+2;};
     function down(m,e){
-      if(e.pointerType==='mouse'||!scrolls()){e.preventDefault();onPress(m,e);return;}
+      if(e.pointerType==='mouse'||!scrolls()||instant&&instant()){e.preventDefault();onPress(m,e);return;}
       touches.set(e.pointerId,{m,e,x:e.clientX,y:e.clientY,left:svg.parentElement.scrollLeft});
     }
     const far=(t,e)=>Math.abs(e.clientX-t.x)>10||Math.abs(e.clientY-t.y)>10||Math.abs(svg.parentElement.scrollLeft-t.left)>4;
@@ -159,5 +173,5 @@
     return ()=>{let x,k,t=0; do{x=gen();k=key(x);}while(recent.includes(k)&&t++<tries); recent.push(k); if(recent.length>memory) recent.shift(); return x;};
   }
 
-  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,tone,click,keyboard,midi,bag,bagFor,fresh};
+  window.Music={LET,NAT,SOL,BLACK,acc,parse,niceT,spellAt,playNotes,drawKeys,audio:ac,latency,tone,click,cancel,keyboard,midi,bag,bagFor,fresh};
 })();

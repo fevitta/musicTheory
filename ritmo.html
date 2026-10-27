@@ -112,7 +112,7 @@ details summary{cursor:pointer;font-weight:600}
 
 <script>
 (function(){
-  const {audio,tone,click,playNotes}=Music;
+  const {audio,latency,tone,click,playNotes}=Music;
   const $=id=>document.getElementById(id);
   const NS='http://www.w3.org/2000/svg';
   function el(parent,tag,attrs,text){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;parent.appendChild(e);return e;}
@@ -209,7 +209,6 @@ details summary{cursor:pointer;font-weight:600}
 
   // ---------- Áudio ----------
   const beatSec=()=>60/S.bpm;
-  const latency=c=>(c.outputLatency||c.baseLatency||0);
   // Agenda contagem + ritmo; devolve o instante (relógio de áudio) em que o ritmo começa
   function schedule(ev,{playRhythm,countIn=true,metro}){
     const c=audio(); if(!c) return null; const b=beatSec(), L=S.beats*4;
@@ -245,7 +244,7 @@ details summary{cursor:pointer;font-weight:600}
   $('bpm').oninput=()=>{S.bpm=+$('bpm').value;$('bpmOut').textContent=S.bpm+' bpm';save();};
 
   let stopFn=null;
-  function start(){ if(stopFn) stopFn(); stopFn=null; const m=$('main'); m.innerHTML='';
+  function start(){ if(stopFn) stopFn(); stopFn=null; Music.cancel(); const m=$('main'); m.innerHTML='';
     ({tocar:Tocar,ouvir:Ouvir,valores:Valores})[S.ex](m); }
 
   // ---------- Tocar o ritmo ----------
@@ -268,16 +267,17 @@ details summary{cursor:pointer;font-weight:600}
     const nextRhythm=Music.fresh(()=>genRhythm(root.clientWidth<560&&S.beats>=3?1:2),heard,6,'tocar');
     function newRhythm(){ev=nextRhythm(); draw(); fb.textContent=''; fb.className='feedback'; countDots(-1,'Aperte Começar. O metrônomo conta '+S.beats+' tempos antes.');}
     function draw(res){drawRhythm(svg,ev,res?{colors:res.colors,taps:res.taps,expected:res.expected}:{taps:[],expected:[]});}
-    function countDots(k,msg){count.innerHTML=''; if(msg){count.append(h('span',{class:'msg'},msg));return;}
+    let shown=null; // só refaz a contagem quando o tempo muda (o laço de animação chama a cada quadro)
+    function countDots(k,msg){if(!msg&&k===shown) return; shown=msg?null:k; count.innerHTML=''; if(msg){count.append(h('span',{class:'msg'},msg));return;}
       for(let i=0;i<S.beats;i++) count.append(h('span',{class:i===k?'on':''},String(i+1)));}
     function stop(){cancelAnimationFrame(raf); run=null; bStart.disabled=bHear.disabled=false;}
     function go(listen){
       if(run) return; const sch=schedule(ev,{playRhythm:listen,metro:S.metro||listen,countIn:true}); if(!sch) return;
-      run={...sch,listen,taps:[],lat:latency(sch.c)}; bStart.disabled=bHear.disabled=true; draw();
+      run={...sch,listen,taps:[]}; bStart.disabled=bHear.disabled=true; draw();
       if(!listen){fb.textContent='';fb.className='feedback';}
       const b=sch.b, ph=el(svg,'line',{x1:0,x2:0,y1:LY-38,y2:LY+20,stroke:'var(--accent)','stroke-width':2,opacity:0});
       const {xOf}=drawRhythm(svg,ev,{taps:[],expected:[]}); svg.append(ph);
-      const tick=()=>{if(!run) return; const now=run.c.currentTime-run.lat, u=(now-run.T)/(b/4);
+      const tick=()=>{if(!run) return; const now=run.c.currentTime-latency(run.c), u=(now-run.T)/(b/4);
         if(now<run.T){countDots(Math.floor((now-(run.T-S.beats*b))/b));}
         else {countDots(Math.floor(u/4)%S.beats); ph.setAttribute('x1',xOf(u)); ph.setAttribute('x2',xOf(u)); ph.setAttribute('opacity',1);}
         if(now>run.end+0.35){const r=run; stop(); if(r.listen){draw();countDots(-1,'Agora é sua vez: aperte Começar.');} else evaluate(r); return;}
@@ -290,7 +290,7 @@ details summary{cursor:pointer;font-weight:600}
       const c=run.c, age=e&&e.timeStamp?(performance.now()-e.timeStamp)/1000:0;
       const t=c.currentTime-(age>0&&age<0.5?age:0);
       if(S.tapSound) click(c.currentTime,{freq:660,vol:.5});
-      run.taps.push(t-run.lat);
+      run.taps.push(t-latency(c));
     }
     function evaluate(r){
       const b=r.b, toU=t=>(t-r.T)/(b/4);
@@ -326,13 +326,13 @@ details summary{cursor:pointer;font-weight:600}
   // ---------- Ouvir e escolher ----------
   function Ouvir(root){
     const TOTAL=10, measures=S.beats===4?1:2, nextRhythm=Music.fresh(()=>genRhythm(measures),heard,6,'ouvir');
-    let q=null, n=0, right=0, answered=false, playing=false;
+    let q=null, n=0, right=0, answered=false, playing=false, playT=0;
     const stats=h('div',{class:'stats'}), fb=h('p',{class:'feedback','aria-live':'polite'}), opts=h('div',{class:'opts'});
     const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,h('span',{class:'hint'},'Conta '+S.beats+' tempos antes e toca o ritmo.')),opts,fb,h('div',{class:'row'},bNext));
     root.append(card);
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
-      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok');}
+      add('Pergunta',Math.min(n+(answered?0:1),TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok');}
     function variants(base){
       const L=S.beats*4, out=[base], seen=new Set([heard(base)]);
       for(let tries=0;out.length<4&&tries<400;tries++){
@@ -348,6 +348,7 @@ details summary{cursor:pointer;font-weight:600}
       return out;
     }
     function next(){
+      Music.cancel(); clearTimeout(playT); playing=false; bHear.disabled=false; // o ritmo da pergunta anterior para de tocar
       if(n>=TOTAL) return summary();
       const base=nextRhythm(), all=shuffle(variants(base)); q={base,all}; answered=false;
       opts.innerHTML=''; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
@@ -357,7 +358,7 @@ details summary{cursor:pointer;font-weight:600}
       showStats();
     }
     function hear(){if(playing) return; const sch=schedule(q.base,{playRhythm:true,metro:S.metro,countIn:true}); if(!sch) return;
-      playing=true; bHear.disabled=true; setTimeout(()=>{playing=false;bHear.disabled=false;},(sch.end-sch.c.currentTime)*1000+300);}
+      playing=true; bHear.disabled=true; playT=setTimeout(()=>{playing=false;bHear.disabled=false;},(sch.end-sch.c.currentTime)*1000+300);}
     function choose(i,b){
       if(answered) return; answered=true; const ok=q.all[i]===q.base; Progress.log('ritmo:ouvir',ok);
       [...opts.children].forEach((o,k)=>{if(q.all[k]===q.base) o.classList.add('good');}); if(!ok) b.classList.add('bad');
@@ -385,7 +386,7 @@ details summary{cursor:pointer;font-weight:600}
     const bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,body,fb,h('div',{class:'row'},bNext)); root.append(card);
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
-      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok');}
+      add('Pergunta',Math.min(n+(answered?0:1),TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok');}
     const why=(d,rest)=>{const b=baseDur(d);return (rest?REST_NAMES[b]:NAMES[d])+' = '+(b!==d?fmtBeats(b)+' + '+fmtBeats(b/2)+' = ':'')+beatWord(d);};
     let qseq=0;
     function ask(qText,visual,options,correctIdx,explain,figs){
