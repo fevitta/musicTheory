@@ -4,7 +4,7 @@
 (function(){
   const KEY='tp-progresso', IDLE=60e3, STEP_MAX=20e3;
   // Chaves de todas as páginas, para exportar/importar o backup completo
-  const BACKUP_KEYS=[KEY,'acordes-cfg','acordes-recordes','leitura-cfg','leitura-fracas','leitura-recordes','ritmo-cfg','ritmo-sessao','ouvido-cfg','vista-cfg','vista-sessao','ch-theme'];
+  const BACKUP_KEYS=[KEY,'acordes-cfg','acordes-recordes','leitura-cfg','leitura-fracas','leitura-recordes','ritmo-cfg','ritmo-sessao','ouvido-cfg','vista-cfg','vista-sessao','ch-piano','tom-texto','ch-theme'];
   const EXS={
     'leitura:nota':['Leitura · Nota no teclado','leitura-partitura.html'],'leitura:nomear':['Leitura · Nomear a nota','leitura-partitura.html'],
     'leitura:escrever':['Leitura · Escrever na pauta','leitura-partitura.html'],'leitura:ditado':['Leitura · Ditado','leitura-partitura.html'],
@@ -39,7 +39,7 @@
     for(const [e,v] of Object.entries(s.ex||{})){const x=t.ex[e]||(t.ex[e]={n:0,ok:0,ms:0});x.n+=v.n||0;x.ok+=v.ok||0;x.ms+=v.ms||0;}}
   // Soma deste aparelho com os importados
   function view(d=read()){
-    const days={}, all=[d.days,...Object.values(d.others).map(o=>o.days||{})];
+    const days={}, all=[d.days,...Object.values(d.others).map(o=>o&&o.days||{})];
     all.forEach(src=>Object.entries(src).forEach(([k,day])=>addInto(days[k]||(days[k]=newDay()),day)));
     return {goal:d.goal,best:d.best,days};
   }
@@ -101,23 +101,24 @@
     document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
   }
   // Histórico: cada aparelho entra separado (pelo id), então importar de novo substitui em vez de somar duas vezes.
-  // Backup deste mesmo navegador (mesmo id): fica o maior valor de cada dia. Recordes: fica o maior.
+  // Backup deste mesmo navegador (mesmo id): fica o maior valor de cada dia. Recordes (Leitura e Acordes): fica o maior.
   // Configurações e notas para revisar vêm do arquivo.
   function importData(text){
     const data=JSON.parse(text); if(!data||data.app!=='teoria-no-piano'||!data.keys) throw new Error('Arquivo não é um backup deste site.');
     const K=data.keys;
-    if(K[KEY]){const inc=JSON.parse(K[KEY]), cur=read(), incId=inc.id||'backup';
+    if(K[KEY]){const inc=JSON.parse(K[KEY]), cur=read(), incId=inc.id||cur.id; // backup sem id (versão 1): era deste navegador
       if(incId===cur.id){
         for(const [k,day] of Object.entries(inc.days||{})){const c=cur.days[k]; if(!c){cur.days[k]=day;continue;}
           c.ms=Math.max(c.ms,day.ms||0); c.n=Math.max(c.n,day.n||0); c.ok=Math.max(c.ok,day.ok||0);
           for(const [e,v] of Object.entries(day.ex||{})){const ce=c.ex[e]; if(!ce) c.ex[e]=v; else {ce.n=Math.max(ce.n,v.n);ce.ok=Math.max(ce.ok,v.ok);ce.ms=Math.max(ce.ms,v.ms);}}}
       } else cur.others[incId]={days:inc.days||{}};
-      Object.entries(inc.others||{}).forEach(([id,o])=>{if(id!==cur.id) cur.others[id]=o;});
+      Object.entries(inc.others||{}).forEach(([id,o])=>{if(id!==cur.id&&o&&o.days) cur.others[id]={days:o.days};});
       cur.best=Math.max(cur.best||0,inc.best||0); write(cur);}
-    if(K['leitura-recordes']){let cur={};try{cur=JSON.parse(localStorage.getItem('leitura-recordes'))||{};}catch(e){}
-      const inc=JSON.parse(K['leitura-recordes']); for(const [k,v] of Object.entries(inc)) cur[k]=Math.max(cur[k]??0,v);
-      localStorage.setItem('leitura-recordes',JSON.stringify(cur));}
-    BACKUP_KEYS.filter(k=>k!==KEY&&k!=='leitura-recordes'&&K[k]!=null).forEach(k=>localStorage.setItem(k,K[k]));
+    const RECS=['leitura-recordes','acordes-recordes'];
+    RECS.forEach(RK=>{if(!K[RK]) return; let cur={};try{cur=JSON.parse(localStorage.getItem(RK))||{};}catch(e){}
+      const inc=JSON.parse(K[RK]); for(const [k,v] of Object.entries(inc)) cur[k]=Math.max(cur[k]??0,v);
+      localStorage.setItem(RK,JSON.stringify(cur));});
+    BACKUP_KEYS.filter(k=>k!==KEY&&!RECS.includes(k)&&K[k]!=null).forEach(k=>localStorage.setItem(k,K[k]));
     return Object.keys(K).length;
   }
   function clearAll(){BACKUP_KEYS.filter(k=>k!=='ch-theme').forEach(k=>{try{localStorage.removeItem(k);}catch(e){}});}

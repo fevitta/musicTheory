@@ -168,7 +168,7 @@ dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
     // Inversão: 3ª, 5ª ou 7ª no baixo (na add9, só 3ª ou 5ª); 0 = fundamental no baixo
     const options=t.k==='add9'?3:t.iv.length, inv=S.inv?Math.floor(Math.random()*options):0;
     const bass=inv?notes[inv]:null;
-    return {type:t,notes,pcs:new Set(notes.map(n=>n.pc)),bass,degree,cifra:niceT(rootName)+t.suf+(bass?'/'+bass.name:'')};
+    return {type:t,notes,pcs:new Set(notes.map(n=>n.pc)),bass,degree,cifra:notes[0].name+t.suf+(bass?'/'+bass.name:'')};
   }
   // Monte de acordes possíveis (fundamental + tipo, ou grau do campo): cada um sai uma vez antes de repetir.
   // A inversão é sorteada à parte.
@@ -257,8 +257,9 @@ dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
     it.done=true; R.locked=true; Progress.log('acordes:cifra',it.tries===0);
     if(S.sound) playNotes(ms.slice().sort((a,b)=>a-b),{dur:1.3});
     $('cifra').className='cifra ok'; setFb((it.tries?'Isso! ':'Certo! ')+it.c.cifra+' = '+noteList(it.c),'ok');
-    R.i++; stats();
+    R.i++; stats(); const r=R;
     setTimeout(()=>{
+      if(R!==r) return; // recomeçou durante a pausa
       if(!timed()&&R.i>=TOTAL){R.end=Date.now(); finish(); return;}
       if(R.end) return;
       R.items.push({c:genChord(),tries:0}); R.revealed=false; R.locked=false; sel.clear(); show();
@@ -279,7 +280,7 @@ dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
     stats(); $('done').hidden=false; $('done').scrollIntoView({behavior:'smooth',block:'start'});
   }
   $('clear').onclick=()=>{sel.clear();drawKeys();setFb('','');};
-  $('hint').onclick=()=>{if(!R||R.end) return; const it=cur(); if(!it.tries){it.tries=1;} R.revealed=true; setFb(it.c.cifra+' = '+noteList(it.c)+(it.c.bass?' (baixo em '+it.c.bass.sol+')':''),'err'); drawKeys(); stats();};
+  $('hint').onclick=()=>{if(!R||R.end||R.locked) return; const it=cur(); if(!it.tries){it.tries=1;} R.revealed=true; setFb(it.c.cifra+' = '+noteList(it.c)+(it.c.bass?' (baixo em '+it.c.bass.sol+')':''),'err'); drawKeys(); stats();};
   $('skip').onclick=()=>{if(!R||R.end||R.locked) return; const it=cur(); it.tries=Math.max(it.tries,1); R.errors++; it.done=true; Progress.log('acordes:cifra',false);
     R.i++; if(!timed()&&R.i>=TOTAL){R.end=Date.now();finish();return;} R.items.push({c:genChord(),tries:0}); R.revealed=false; sel.clear(); show(); stats();};
   $('restart').onclick=newRound;
@@ -304,7 +305,7 @@ dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
     PRESETS.forEach(([l,v])=>pb.append(Object.assign(h('button',{type:'button',class:'link'},l),{onclick:()=>{S.types=v;save();controls();newRound();}})));
     seg($('roots'),[['todas','Todas as 12'],['naturais','Só C D E F G A B']],'roots');
     seg($('modes'),[['maior','Maior'],['menor','Menor']],'mode');
-    if(!SCALES[S.mode].tonics.includes(S.tonic)){const pc=parse(S.tonic).pc;S.tonic=SCALES[S.mode].tonics.find(t=>parse(t).pc===pc);}
+    if(!SCALES[S.mode].tonics.includes(S.tonic)){const pc=parse(S.tonic).pc;S.tonic=SCALES[S.mode].tonics.find(t=>parse(t).pc===pc);save();}
     seg($('sizes'),[['tri','Tríades'],['tet','Tétrades']],'size');
     seg($('tonics'),SCALES[S.mode].tonics.map(t=>[t,niceT(t)]),'tonic',{chips:true,mono:true});
     seg($('rounds'),[['count','Rodada de '+TOTAL],['clock','Contra o relógio']],'round');
@@ -312,7 +313,7 @@ dt{color:var(--muted)} dd{margin:0;font-family:var(--mono);font-size:13.5px}
     const ob=$('opts'); ob.innerHTML='';
     [['inv','Inversões (C/E, G7/B…)',true],['formula','Mostrar o tipo do acorde',false],['names','Nomes nas teclas',false],['sound','Som',false]].forEach(([k,l,restart])=>{
       const b=h('button',{type:'button',class:'toggle','aria-pressed':String(!!S[k])},l);
-      b.onclick=()=>{S[k]=!S[k];save();b.setAttribute('aria-pressed',String(S[k])); if(restart) newRound(); else {show();}};ob.append(b);});
+      b.onclick=()=>{S[k]=!S[k];save();b.setAttribute('aria-pressed',String(S[k])); if(restart) newRound(); else if(cur()) show(); else drawKeys();};ob.append(b);});
   }
 
   midi(m=>midiOn(m),n=>{if(n) $('midiInfo').textContent='Piano MIDI conectado: toque o acorde inteiro de uma vez.';},m=>held.delete(m));

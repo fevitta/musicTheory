@@ -177,8 +177,8 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   };
   // Posição diatônica: oitava*7 + letra (C4 = 28). bottom = linha de baixo da pauta.
   const CLEFS={
-    sol:{name:'Sol',glyph:'𝄞',bottom:30,ranges:{pauta:[29,39],sup:[26,42]},sharps:[38,35,39,36,34,37,33],flats:[33,37,34,36,32,35,31]},
-    fa:{name:'Fá',glyph:'𝄢',bottom:18,ranges:{pauta:[17,27],sup:[14,30]},sharps:[24,21,25,22,20,23,19],flats:[19,23,20,22,18,21,17]}
+    sol:{name:'Sol',glyph:'𝄞',bottom:30,ranges:{pauta:[29,39],sup:[26,42]},sharps:[38,35,39,36,33,37,34],flats:[34,37,33,36,32,35,31]},
+    fa:{name:'Fá',glyph:'𝄢',bottom:18,ranges:{pauta:[17,27],sup:[14,30]},sharps:[24,21,25,22,19,23,20],flats:[20,23,19,22,18,21,17]}
   };
   const CLEF_OPTS=[['sol','Clave de Sol'],['fa','Clave de Fá'],['ambas','Pauta dupla']];
   const RANGES=[['pauta','Na pauta'],['sup','Com linhas suplementares']];
@@ -249,7 +249,8 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   // ---------- Notas fracas (para revisar) ----------
   const weakKey=n=>n.clef+'|'+n.d+'|'+n.acc;
   let WEAK=load('leitura-fracas',{});
-  function weakList(){const on=clefsOn();return Object.entries(WEAK).filter(([k,c])=>c>0&&on.includes(k.split('|')[0])).map(([k,c])=>{const [clef,d,a]=k.split('|');return {n:mkNote(+d,+a,clef),c};});}
+  // Só as da clave e da extensão escolhidas: fora delas não há tecla nem lugar na pauta para responder
+  function weakList(){const on=clefsOn();return Object.entries(WEAK).filter(([k,c])=>{const [clef,d]=k.split('|'),r=on.includes(clef)&&CLEFS[clef].ranges[S.range];return c>0&&r&&+d>=r[0]&&+d<=r[1];}).map(([k,c])=>{const [clef,d,a]=k.split('|');return {n:mkNote(+d,+a,clef),c};});}
   function noteWeak(it){
     if(!SINGLE.includes(S.ex)) return;
     const k=weakKey(it.notes[0]);
@@ -286,9 +287,11 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
       out.push(mkItem([chromatize(P[i])]));}
     return out;
   }
+  // Evita repetir uma das últimas melodias (Music.fresh)
+  const nextGroup=Music.fresh(genGroup,g=>g.map(it=>it.clef+it.notes[0].d).join(),5,'leitura-seq');
   const total=()=>timed()?Infinity:R.review?30:EXS[S.ex].total;
   function ensure(n){while(R.items.length<Math.min(n,total())){
-    if(S.ex==='sequencia'&&!R.review) R.items.push(...genGroup()); else R.items.push(genItem());}}
+    if(S.ex==='sequencia'&&!R.review) R.items.push(...nextGroup()); else R.items.push(genItem());}}
 
   // ---------- Rodada ----------
   let K=null, R=null, clockTimer=null;
@@ -391,10 +394,11 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
   }
   // Ditado
   function hear(){if(active()) playNotes(cur().notes.map(n=>n.m),{dur:1.2});}
-  function hearTonic(){const P=K.pools[cur().clef], mid=P[Math.floor(P.length/2)].m, pc=parse(S.tonic).pc;
+  function hearTonic(){if(!active()) return; const P=K.pools[cur().clef], mid=P[Math.floor(P.length/2)].m, pc=parse(S.tonic).pc;
     let m=mid-((mid-pc)%12+12)%12; playNotes([m],{dur:1.2});}
 
   function finish(){
+    if(!R.end) return; // a rodada foi trocada antes do resultado aparecer
     const T=R.items.slice(0,R.i), ok=T.filter(n=>n.tries===0).length, time=R.end-(R.start||R.end), ex=EXS[S.ex];
     const clock=timed();
     $('rLbl').textContent=clock?'Certas de primeira em '+CLOCK+' s':'Acertos de primeira';
@@ -411,7 +415,7 @@ dd{margin:0;font-family:var(--mono);font-size:13.5px}
     const box=$('rMissed'); box.innerHTML='';
     if(!miss.size){const p=document.createElement('p');p.className='empty';p.textContent=T.length?'Nenhum erro. Tente com linhas suplementares, outra clave ou contra o relógio.':'Nenhuma resposta nesta rodada.';box.appendChild(p);}
     [...miss].sort((a,b)=>b[1]-a[1]).forEach(([k,c])=>{const s=document.createElement('span');s.textContent=k+(c>1?' ×'+c:'');box.appendChild(s);});
-    reviewBtn();
+    reviewBtn(); stats();
     $('done').hidden=false; $('done').scrollIntoView({behavior:'smooth',block:'start'});
   }
   function reviewBtn(){

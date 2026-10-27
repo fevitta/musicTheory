@@ -302,7 +302,7 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
   // Links de outras páginas: campo-harmonico.html?tonic=G&mode=maior
   const q=new URLSearchParams(location.search);
   if(/^[A-G][#b]?$/.test(q.get('tonic')||'')) S.tonic=q.get('tonic');
-  if(MODES[q.get('mode')]){S.mode=q.get('mode'); if(MODE_OPTS.slice(4).some(o=>o[0]===S.mode)) S.showModes=true;}
+  if(MODES.hasOwnProperty(q.get('mode'))){S.mode=q.get('mode'); if(MODE_OPTS.slice(4).some(o=>o[0]===S.mode)) S.showModes=true;}
   function save(){try{localStorage.setItem('ch-piano',JSON.stringify(S));}catch(e){}}
 
 
@@ -412,8 +412,21 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
     if(gapMs===0){drawKeyboard(ch,current.scale,hl.map(v=>({...v,active:true})));flashT.push(setTimeout(()=>drawKeyboard(ch,current.scale,hl),holdMs));return;}
     seq.forEach((m,k)=>flashT.push(setTimeout(()=>drawKeyboard(ch,current.scale,hl.map(v=>({...v,active:v.m===m}))),30+k*gapMs)));
     flashT.push(setTimeout(()=>drawKeyboard(ch,current.scale,hl),30+seq.length*gapMs+holdMs));}
-  function playFlash(ms,arp){ if(arp){const seq=ms;const g=Math.min(0.2,0.9/seq.length);playNotes(seq,{arp:g,dur:1.1});flash(seq,g*1000,250);} else {playNotes(ms);flash(ms,0,700);} }
-  function stopProg(){flashT.forEach(clearTimeout);flashT=[];progTimer.forEach(clearTimeout);progTimer=[];document.querySelectorAll('.prog').forEach(p=>{p.classList.remove('playing');p.querySelectorAll('.pc span').forEach(s=>s.classList.remove('on'));});}
+  // Som do acorde (agora ou daqui a `at` s; devolve o instante no relógio de áudio) e o acender das notas enquanto soam
+  const arpGap=ms=>Math.min(0.2,0.9/ms.length);
+  const chordSound=(ms,arp,at=0)=>arp?playNotes(ms,{arp:arpGap(ms),dur:1.1,at}):playNotes(ms,{at});
+  const chordFlash=(ms,arp)=>arp?flash(ms,arpGap(ms)*1000,250):flash(ms,0,700);
+  function playFlash(ms,arp){chordSound(ms,arp);chordFlash(ms,arp);}
+  // Sequência de acordes (progressão, campo inteiro): o som de todos é agendado de uma vez no relógio de áudio, para a troca
+  // de acorde cair sempre no tempo; os timers só mostram cada acorde na tela quando ele soa. Devolve a duração em ms.
+  function playSeq(steps,gap,arp,onStep){
+    const c=Music.audio(); if(!c) return 0; let t0=0;
+    steps.forEach(({v},k)=>{const t=chordSound(v.map(x=>x.m),arp,k*gap); if(!k) t0=t;});
+    const wait=k=>Math.max(0,(t0+k*gap-c.currentTime+Music.latency(c))*1000);
+    steps.forEach(({d,v},k)=>progTimer.push(setTimeout(()=>{if(onStep) onStep(k); showChord(d,false,v); chordFlash(v.map(x=>x.m),arp);},wait(k))));
+    return wait(steps.length);
+  }
+  function stopProg(){Music.cancel();flashT.forEach(clearTimeout);flashT=[];progTimer.forEach(clearTimeout);progTimer=[];document.querySelectorAll('.prog').forEach(p=>{p.classList.remove('playing');p.querySelectorAll('.pc span').forEach(s=>s.classList.remove('on'));});}
   let trail=[], cur=null, curBass=null;
   const invOf=(ch,v)=>Math.max(0,ch.notes.indexOf(v[0].n));
   // Condução de vozes: escolhe a inversão/oitava do acorde mais próxima da anterior
@@ -486,8 +499,6 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
     tr.innerHTML=trail.map((d,k)=>{const c=current.chords[d],f=c.fn[0];const nm=S.names==='sol'?c.root.sol+c.cifra.slice(c.root.name.length):c.cifra;
       return (k?'<span class="arrow">→</span>':'')+`<span class="step-chip ${f}">${nm}<small>${LANE[f].verb}</small></span>`;}).join('');
   }
-  function playTrail(degs){stopProg();toChordView();trail=[];const gap=1100;
-    let prev=null; degs.forEach((d,k)=>progTimer.push(setTimeout(()=>{trail.push(d);const v=twoHand(d,prev);showChord(d,S.play==='arpejo'?'arp':true,v);prev=cur;},k*gap)));}
   function showChord(i,withSound,voicing){
     S.sel=i; save();
     const ch=current.chords[i];
@@ -505,7 +516,7 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
   }
   function render(){
     save(); stopProg();
-    const M=MODES[S.mode]; if(!M.tonics.includes(S.tonic)) S.tonic=M.tonics[0];
+    const M=MODES[S.mode]; if(!M.tonics.includes(S.tonic)){const pc=parse(S.tonic).pc;S.tonic=M.tonics.find(t=>parse(t).pc===pc)||M.tonics[0];}
     const tb=document.getElementById('tonics'); tb.innerHTML='';
     M.tonics.forEach(t=>{const b=document.createElement('button');b.type='button';b.className='chip';b.textContent=niceT(t);b.setAttribute('aria-pressed',String(t===S.tonic));b.onclick=()=>{S.tonic=t;render();};tb.appendChild(b);});
     const mb=document.getElementById('modes'); mb.innerHTML='';
@@ -545,16 +556,19 @@ td{font-family:var(--mono);font-variant-numeric:tabular-nums}
     showChord(Math.min(S.sel,6),false);
   }
   function playProg(p,btn){
-    stopProg(); let prev=null; btn.classList.add('playing'); const spans=btn.querySelectorAll('.pc span'); const gap=1100;
-    p.deg.forEach((d,k)=>{progTimer.push(setTimeout(()=>{spans.forEach(s=>s.classList.remove('on'));spans[k].classList.add('on');if(k===0){trail=[];prev=null;}trail.push(d);showChord(d,S.play==='arpejo'?'arp':true,twoHand(d,prev));prev=cur;},k*gap));});
-    progTimer.push(setTimeout(()=>{btn.classList.remove('playing');spans.forEach(s=>s.classList.remove('on'));},p.deg.length*gap+400));
+    stopProg(); btn.classList.add('playing'); const spans=btn.querySelectorAll('.pc span');
+    // Vozes calculadas antes de tocar: cada acorde conduzido a partir do anterior (twoHand lê o baixo anterior em curBass)
+    let prev=null; const cb=curBass, steps=p.deg.map(d=>{const v=twoHand(d,prev);prev=v.slice(1);curBass=v[0].m;return {d,v};}); curBass=cb;
+    trail=[];
+    const ms=playSeq(steps,1.1,S.play==='arpejo',k=>{spans.forEach(s=>s.classList.remove('on'));spans[k].classList.add('on');trail.push(p.deg[k]);});
+    progTimer.push(setTimeout(()=>{btn.classList.remove('playing');spans.forEach(s=>s.classList.remove('on'));},ms+400));
   }
   document.getElementById('playChord').onclick=()=>{toChordView();playFlash((lastHL||current.chords[S.sel].voicing).map(v=>v.m),false);};
   document.getElementById('playArp').onclick=()=>{toChordView();playFlash((lastHL||current.chords[S.sel].voicing).map(v=>v.m),true);};
   document.getElementById('playScale').onclick=()=>{if(S.view==='acorde'){S.view='escala';render();} stopProg(); const ms=scaleNotes().map(v=>v.m); const esc=S.view!=='acorde'; const gap=esc?0.45:0.28;
     ms.forEach((m,i)=>{playNotes([m],{at:i*gap,dur:0.6}); if(esc) progTimer.push(setTimeout(()=>drawScale(i),i*gap*1000+30));});
     if(esc) progTimer.push(setTimeout(()=>drawScale(-1),ms.length*gap*1000+300));};
-  document.getElementById('playField').onclick=()=>{stopProg();toChordView(); for(let i=0;i<7;i++) progTimer.push(setTimeout(()=>showChord(i,true),i*900)); progTimer.push(setTimeout(()=>showChord(0,true),7*900));};
+  document.getElementById('playField').onclick=()=>{stopProg();toChordView(); playSeq([0,1,2,3,4,5,6,0].map(d=>({d,v:current.chords[d].voicing})),0.9,false);};
   document.getElementById('clearTrail').onclick=()=>{stopProg();trail=[];drawMap();};
   narrow.addEventListener('change',drawMap);
   render();

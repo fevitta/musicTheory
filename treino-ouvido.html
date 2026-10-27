@@ -182,9 +182,9 @@ section{display:flex;flex-direction:column;gap:12px}
     const bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,top,grid,fb,h('div',{class:'row'},bNext)); root.append(card);
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
-      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); if(q&&q.keyLabel) stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.keyLabel)));}
+      add('Pergunta',Math.min(n+(answered?0:1),TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); if(q&&q.keyLabel) stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.keyLabel)));}
     function next(){
-      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
+      clearTimeout(timer); Music.cancel(); if(n>=TOTAL) return summary(card,right,conf);
       q=make(n); answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       top.innerHTML=''; top.append(h('button',{class:'btn primary',type:'button',on:{click:()=>q.play(false)}},'Ouvir de novo'));
       if(q.cadence) top.append(h('button',{class:'btn',type:'button',on:{click:()=>q.cadence()}},'Ouvir o tom'));
@@ -237,7 +237,7 @@ section{display:flex;flex-direction:column;gap:12px}
   }
   function Graus(root){
     const grBag=Music.bagFor('grs',S.grs,()=>S.grs);
-    let k=keyOf(S.grMode,S.randKey);
+    let k=keyOf(S.grMode,S.randKey&&Music.bagFor('tons-gr',S.grMode,()=>SCALES[S.grMode].tonics).next());
     Quiz(root,(i)=>{
       const deg=grBag.next(), iv=SCALES[k.mode].iv, m=k.t+iv[deg-1];
       const resolution=()=>{const steps=deg<=4?[...Array(deg).keys()].reverse().map(j=>k.t+iv[j]):[...Array(9-deg).keys()].map(j=>deg-1+j>=7?k.t+12:k.t+iv[deg-1+j]);return steps;};
@@ -270,12 +270,12 @@ section{display:flex;flex-direction:column;gap:12px}
     const bHear=h('button',{class:'btn primary',type:'button'},'Ouvir de novo'), bUndo=h('button',{class:'btn',type:'button'},'Apagar'), bNext=h('button',{class:'btn',type:'button'},'Próxima');
     const card=h('div',{class:'card'},stats,h('div',{class:'row'},bHear,bUndo),slots,grid,fb,h('div',{class:'row'},bNext)); root.append(card);
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
-      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
+      add('Pergunta',Math.min(n+(answered?0:1),TOTAL)+'/'+TOTAL); add('Acertos',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
     function play(){let prev=null;q.degs.forEach((d,i)=>{const pcs=Sc.quals[d].map(x=>(q.k.t+Sc.roots[d]+x)%12), up=voiceLead(prev,pcs);prev=up;
       let bass=q.k.t+Sc.roots[d]-12; while(bass>50) bass-=12; while(bass<40) bass+=12;
       playNotes([bass,...up],{dur:1.05,at:i*1.1});});}
     function next(){
-      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf);
+      clearTimeout(timer); Music.cancel(); if(n>=TOTAL) return summary(card,right,conf);
       const k=keyOf(S.prMode,keys.next()), degs=genDegs();
       q={k,degs}; filled=[0]; answered=false; fb.textContent=''; fb.className='feedback'; bNext.hidden=true;
       grid.innerHTML=''; pool.forEach(d=>{const b=h('button',{type:'button',class:'ans'},h('b',{},Sc.roman[d]));b.onclick=()=>pick(d);grid.append(b);});
@@ -307,10 +307,10 @@ section{display:flex;flex-direction:column;gap:12px}
     const Sc=SCALES[S.diMode], keys=Music.bagFor('tons-di',S.diMode,()=>Sc.tonics), top=S.diRange==='cinco'?4:7;
     const genDegs=Music.fresh(()=>{const degs=[0]; for(let i=1;i<S.diLen;i++){let d;do{d=degs[i-1]+rnd([-2,-1,-1,1,1,2,3,-3]);}while(d<0||d>top||d===degs[i-1]);degs.push(d);} return degs;},d=>d.join(),5,'ditado');
     function showStats(){stats.innerHTML='';const add=(l,v,c)=>stats.append(h('div',{class:'stat'+(c?' '+c:'')},h('span',{class:'lbl'},l),h('b',{},v)));
-      add('Pergunta',Math.min(n+1,TOTAL)+'/'+TOTAL); add('Sem erro',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
+      add('Pergunta',Math.min(n+(pos<q.ms.length?1:0),TOTAL)+'/'+TOTAL); add('Sem erro',String(right),'ok'); stats.append(h('div',{class:'stat'},h('span',{class:'lbl'},'Tom'),h('span',{class:'key'},q.k.label)));}
     const play=()=>playNotes(q.ms,{arp:0.6,dur:0.7});
     function next(){
-      clearTimeout(timer); if(n>=TOTAL) return summary(card,right,conf,'Todas as melodias sem erro. Aumente o número de notas ou use a oitava inteira.');
+      clearTimeout(timer); Music.cancel(); if(n>=TOTAL) return summary(card,right,conf,'Todas as melodias sem erro. Aumente o número de notas ou use a oitava inteira.');
       const k=keyOf(S.diMode,keys.next()), t=60+k.pc, degs=genDegs();
       const ms=degs.map(d=>t+(d===7?12:Sc.iv[d]));
       q={k,t,degs,ms,names:degs.map(d=>d===7?degName(k,1):degName(k,d+1))}; pos=1; errs=0;
@@ -332,7 +332,7 @@ section{display:flex;flex-direction:column;gap:12px}
   }
   midi((m,e)=>{if(midiNote) midiNote(m,e);});
 
-  function start(){stop();stop=()=>{};const m=$('main');m.innerHTML='';
+  function start(){stop();stop=()=>{};Music.cancel();const m=$('main');m.innerHTML='';
     ({intervalos:Intervalos,acordes:Acordes,graus:Graus,progressoes:Progressoes,ditado:Ditado})[S.ex](m);}
   document.addEventListener('touchend',()=>playNotes([]),{passive:true});
   Progress.track(); controls(); start();

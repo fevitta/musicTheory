@@ -139,7 +139,7 @@ p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
   const WEEK=['dom','seg','ter','qua','qui','sex','sáb'];
   const parseKey=k=>{const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);};
   const fmtDay=k=>{const t=parseKey(k);return WEEK[t.getDay()]+', '+t.getDate()+' '+MONTHS[t.getMonth()];};
-  const fmtMin=m=>m<1&&m>0?'<1 min':m<60?Math.round(m)+' min':Math.floor(m/60)+' h '+String(Math.round(m%60)).padStart(2,'0')+' min';
+  const fmtMin=m=>m<1&&m>0?'<1 min':(m=Math.round(m))<60?m+' min':Math.floor(m/60)+' h '+String(m%60).padStart(2,'0')+' min';
   const pct=(ok,n)=>n?Math.round(100*ok/n)+'%':'–';
   let period=7;
 
@@ -265,7 +265,7 @@ p.note{margin:0;font-size:14px;color:var(--muted);max-width:70ch}
   $('importBtn').onclick=()=>$('importFile').click();
   $('importFile').onchange=async e=>{const f=e.target.files[0]; if(!f) return;
     try{const n=P.importData(await f.text()); msg('Backup importado ('+n+' itens). O histórico de outro aparelho é somado ao deste; importar o mesmo arquivo de novo não duplica.'); render(); P.refresh();}
-    catch(err){msg('Não deu para importar: '+(err.message||'arquivo inválido')+'.');}
+    catch(err){msg('Não deu para importar: '+(err instanceof SyntaxError||!err.message?'arquivo inválido':err.message.replace(/\.$/,''))+'.');}
     e.target.value='';};
   $('protect').onclick=async()=>{const ok=await P.protect(true); msg(ok?'Pronto: dados protegidos.':'O navegador não autorizou. No iPhone, adicione o site à Tela de Início; em outros, use o site com frequência ou faça backups.'); persistStatus();};
   $('wipe').onclick=()=>{if(!confirm('Apagar todo o progresso, recordes, notas para revisar e configurações deste navegador? Isso não pode ser desfeito. Exporte um backup antes, se quiser guardar.')) return;
